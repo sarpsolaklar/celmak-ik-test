@@ -1562,7 +1562,9 @@ const personnelTemplateSections={
 const personnelTemplateChoices={
   'Kimlik belgesi türü':'Yeni kimlik kartı | Eski nüfus cüzdanı',
   'Kan grubu':'A+ | A− | B+ | B− | AB+ | AB− | 0+ | 0−',
-  'Eğitim durumu':'İlkokul | Ortaokul | Lise | Önlisans | Lisans | Yüksek lisans | Doktora | Belirtilmedi',
+  'Eğitim durumu':personnelEducationOptions().join(' | '),
+  'İş yeri bağı':'ÇELMAK Sanayi | ÇELMAK İbirler | ÇELPA',
+  'Sigorta işvereni':'ÇELMAK Sanayi | ÇELMAK İbirler | ÇELPA',
   'Çalışma biçimi':'Tam zamanlı | Yarı zamanlı | Stajyer | Diğer',
   'Medeni durum':'Evli | Bekâr | Boşanmış | Eşi vefat etmiş'
 };
