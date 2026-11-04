@@ -993,19 +993,22 @@ document.addEventListener('click',event=>{
  filterProfileNotes();
  search.focus();
 });
-function returnToNoteList(form){
+function returnToNoteList(form,savedCategory=""){
  const action=form.dataset.returnAction;
  if(dialog.open)dialog.close();
- const button=[...main.querySelectorAll('[data-action]')].find(element=>element.dataset.action===action);
+ const buttons=[...main.querySelectorAll('[data-action]')].filter(element=>element.dataset.action===action);
+ const button=buttons[Number(form.dataset.returnIndex)||0]||buttons[0];
  if(!button)return;
  for(let parent=button.parentElement;parent&&parent!==main;parent=parent.parentElement){
   if(parent.tagName==='DETAILS')parent.open=true;
  }
+ const preview=button.closest('.context-note-link')?.querySelector('details[data-note-kind]');
+ if(preview&&contextNoteCategories[preview.dataset.noteKind]===savedCategory)preview.open=true;
  button.focus({preventScroll:true});
  button.scrollIntoView?.({block:'nearest'});
 }
 function noteForm(id,category="",returnAction=""){const p=person(id);if(!p)return;dialog.innerHTML=`<form id="note-form" data-person="${esc(id)}" data-return-action="${esc(returnAction)}"><h2>${esc(p.name)} · Not Ekle</h2><p class="notice">Bu not personel dosyasına eklenir. Bir gün veya dönemle ilgiliyse tarihi notun başına yazın. Resmi kayıtlar ve hesaplamalar aynı kalır.</p><div class="fields">${selectField('Kategori','category',personNoteCategories().map(value=>[value,value]),category)}<label class="full">Not<textarea name="content" required maxlength="1000" rows="5"></textarea></label></div><p class="error" id="note-error" role="alert"></p><div class="dialogactions">${btn('Kaydetmeden geri dön','cancelauxiliarydraft')}<button class="btn primary">Notu kaydet</button></div></form>`;if(!dialog.open)dialog.showModal()}
-function saveNote(form){const p=person(form.dataset.person);if(!p)return;const data=Object.fromEntries(new FormData(form)),content=String(data.content||'').trim();if(!content||content.length>1000||!personNoteCategories().includes(data.category)){document.getElementById('note-error').textContent='Kategori ve en fazla 1.000 karakterlik not girin.';return}db.personNotes.unshift({id:'N-'+crypto.randomUUID(),person:p.id,at:new Date().toISOString(),category:data.category,content,status:'Aktif'});save(p.name+' · Personel notu eklendi.');if(restoreEditorAfterNote(form))return;if(form.dataset.returnAction){returnToNoteList(form);return}refreshProfile(p.id);jumpProfileSection('notes')}
+function saveNote(form){const p=person(form.dataset.person);if(!p)return;const data=Object.fromEntries(new FormData(form)),content=String(data.content||'').trim();if(!content||content.length>1000||!personNoteCategories().includes(data.category)){document.getElementById('note-error').textContent='Kategori ve en fazla 1.000 karakterlik not girin.';return}db.personNotes.unshift({id:'N-'+crypto.randomUUID(),person:p.id,at:new Date().toISOString(),category:data.category,content,status:'Aktif'});save(p.name+' · Personel notu eklendi.');if(restoreEditorAfterNote(form,data.category))return;if(form.dataset.returnAction){returnToNoteList(form,data.category);return}refreshProfile(p.id);jumpProfileSection('notes')}
 function noteCancelForm(id){const x=db.personNotes.find(x=>x.id===id);if(!x||x.status!=='Aktif')return;dialog.innerHTML=`<form id="note-cancel-form" data-id="${esc(id)}"><h2>Notu Sil</h2><p>${esc(x.content)}</p><label>Silme nedeni<textarea name="reason" required maxlength="200" rows="3" style="display:block;width:100%;margin-top:12px"></textarea></label><p class="error" id="note-cancel-error" role="alert"></p><div class="dialogactions">${btn('Kaydetmeden geri dön','cancelauxiliarydraft')}<button class="btn danger">Notu sil</button></div></form>`}
 function cancelNote(form){const x=db.personNotes.find(x=>x.id===form.dataset.id);if(!x||x.status!=='Aktif')return;const reason=String(new FormData(form).get('reason')||'').trim();if(!reason||reason.length>200){document.getElementById('note-cancel-error').textContent='İptal nedeni girin.';return}x.status='İptal edildi';x.cancelReason=reason;x.cancelledAt=new Date().toISOString();save(pname(x.person)+' · Personel notu iptal edildi: '+reason);refreshProfile(x.person);jumpProfileSection('notes')}
 function bulkDatedPeople(data,date){return db.people.filter(p=>(p.status==='Aktif'||(p.status==='İşten ayrıldı'&&validDate(p.exit)&&date<=p.exit))&&(data.dept==='all'||p.dept===data.dept)&&((date<=TODAY&&date>=p.start)?attendanceLineMatches(p,date,data.line):(data.line==='all'||(data.line==='unassigned'?!p.line:p.line===data.line))))}
@@ -1679,7 +1682,7 @@ function personEditStartNotes(p){
   '<p class="small muted">Fiilî başlangıç veya tarih düzeltmesi hakkında açıklama ekleyin. Not, işe giriş tarihini değiştirmez.</p>'+
   contextNotePreview(p,'start')+'</div>';
 }
-function restoreEditorAfterNote(noteFormElement){
+function restoreEditorAfterNote(noteFormElement,savedCategory=""){
  const source=noteFormElement.editorSource;
  if(!source)return false;
  const employee=person(noteFormElement.dataset.person);
@@ -1689,7 +1692,7 @@ function restoreEditorAfterNote(noteFormElement){
   const openKinds=new Set([...context.querySelectorAll('details[open]')].map(details=>details.dataset.noteKind));
   context.outerHTML=source.renderContext(employee);
   for(const details of source.form.querySelectorAll(source.contextSelector+' details')){
-   details.open=openKinds.has(details.dataset.noteKind);
+   details.open=openKinds.has(details.dataset.noteKind)||contextNoteCategories[details.dataset.noteKind]===savedCategory;
   }
  }
  dialog.replaceChildren(source.form);
@@ -1718,7 +1721,13 @@ document.addEventListener('click',event=>{
   const id=idParts.join(':');
   if(!person(id)||!contextNoteCategories[kind])return;
   if(currentEditDraftHasChanges()&&!confirm('Kaydedilmemiş değişiklikler var. Notlara geçilsin mi?'))return;
-  noteForm(id,contextNoteCategories[kind],dialog.open?'':action);
+  const sourceButton=event.target.closest('[data-action]');
+  const returnAction=main.contains(sourceButton)?action:'';
+  noteForm(id,contextNoteCategories[kind],returnAction);
+  if(returnAction){
+   const buttons=[...main.querySelectorAll('[data-action]')].filter(element=>element.dataset.action===action);
+   document.getElementById('note-form').dataset.returnIndex=buttons.indexOf(sourceButton);
+  }
   return;
  }
  if(action==='personeditstartnote'){
