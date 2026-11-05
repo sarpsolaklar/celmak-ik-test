@@ -593,7 +593,7 @@ function parseMonthlyWorkbookSheet(sheet){
   return [{number:index+2,name,costs,paid,total,expectedTotal,problem}];
  });
 }
-function monthlyWorkbookEligible(p,month){return monthlyCostEligible(p,month)||(p.createdFromCostWorkbook===true&&p.pendingPersonnelDetails===true&&!p.start)}
+function monthlyWorkbookEligible(p,month){return monthlyCostEligible(p,month)||(p.pendingPersonnelDetails===true&&p.status==='Aktif'&&!p.start)}
 function monthlyWorkbookPreview(form){
  const source=monthlyWorkbookImports.get(form);
  const month=form.elements.month.value,sheet=form.elements.sheet.value;
@@ -605,11 +605,12 @@ function monthlyWorkbookPreview(form){
  for(const row of rows){const key=monthlyWorkbookName(row.name);names.set(key,(names.get(key)||0)+1)}
  const preview=rows.map(row=>{
   const key=monthlyWorkbookName(row.name),selectedUid=manual?.get(row.number);
-  const matches=candidates.filter(p=>monthlyWorkbookName(p.name)===key);
+  const sameName=db.people.filter(p=>monthlyWorkbookName(p.name)===key);
+  const matches=sameName.filter(p=>candidates.includes(p));
   const p=selectedUid?db.people.find(person=>person.uid===selectedUid&&(!person.insuranceCompany||employers.includes(person.insuranceCompany))):matches.length===1&&names.get(key)===1?matches[0]:null;
   const existing=p&&db.monthlyCosts.find(record=>record.uid===p.uid&&record.month===month);
-  const problem=row.problem||(!validCostMonth(month)?'Ayı seçin':selectedUid&&!p?'Elle seçilen çalışan artık uygun değil':!p?(matches.length>1||names.get(key)>1?'Belirsiz eşleşme · çalışan seçin':'Eşleşme bulunamadı · çalışan seçin'):!monthlyWorkbookEligible(p,month)?'Çalışan bu dönemde uygun değil':existing?'Bu aya ait ayrı maliyet kaydı var':'');
-  return {...row,p,selectedUid,sourceProblem:row.problem,problem};
+  const problem=row.problem||(!validCostMonth(month)?'Ayı seçin':selectedUid&&!p?'Elle seçilen çalışan artık uygun değil':!p?(matches.length>1||names.get(key)>1?'Belirsiz eşleşme · çalışan seçin':sameName.length?'Aynı adlı kayıt var · işveren veya çalışma dönemini kontrol edin':'Bu adla personel bulunamadı'):!monthlyWorkbookEligible(p,month)?'Çalışan bu dönemde uygun değil':existing?'Bu aya ait ayrı maliyet kaydı var':'');
+  return {...row,p,selectedUid,sameName,sourceProblem:row.problem,problem};
  });
  const counts=new Map();
  for(const row of preview)if(row.p&&!row.problem)counts.set(row.p.uid,(counts.get(row.p.uid)||0)+1);
@@ -632,14 +633,15 @@ function renderMonthlyWorkbookPreview(form){
   .sort((a,b)=>a.name.localeCompare(b.name,'tr'));
  const count=rows.filter(row=>!row.problem).length;
  form.querySelector('#monthly-workbook-import-preview').innerHTML=rows.length?
-  monthlyWorkbookColumnGuide(source,sheet)+'<p><strong>'+count+' aktarılabilir · '+(rows.length-count)+' inceleme gerekiyor</strong></p>'+
+  monthlyWorkbookColumnGuide(source,sheet)+(!db.people.length?'<p class="notice">Bu oturumda personel kaydı bulunmuyor. Mevcut personel listenizi açın veya ilgili satırdan yeni personel oluşturun.</p>':!candidates.length&&validCostMonth(form.elements.month.value)?'<p class="notice">Bu ay ve sayfa için elle seçilebilecek çalışan yok. Aynı adlı kayıtların sigorta işverenini ve işe giriş tarihini Personel ve Özlük ekranında kontrol edin.</p>':'')+'<p><strong>'+count+' aktarılabilir · '+(rows.length-count)+' inceleme gerekiyor</strong></p>'+
   table(['Excel satırı','Excel’deki ad soyad','Sistemdeki çalışan','Ödenen maaş','Excel maliyeti','Sistem maliyeti','Durum'],rows.map(row=>{
-   const match=row.p?esc(row.p.name)+' · '+esc(row.p.id)+'<br><span class="small muted">'+esc(row.p.insuranceCompany)+' · '+(row.selectedUid?'Elle seçildi':'Otomatik eşleşme')+'</span>':'Eşleşme yok';
+   const match=row.p?esc(row.p.name)+' · '+esc(row.p.id)+'<br><span class="small muted">'+esc(row.p.insuranceCompany||'Sigorta işvereni eksik')+' · '+(row.selectedUid?'Elle seçildi':'Otomatik eşleşme')+'</span>':'Eşleşme yok';
    const options=candidates.map(p=>'<option value="'+esc(p.uid)+'"'+(row.selectedUid===p.uid?' selected':'')+'>'+esc(p.name+' · '+p.id+' · '+(p.insuranceCompany||'Sigorta işvereni eksik'))+'</option>').join('');
    const control=candidates.length&&!row.sourceProblem?
     '<details'+(!row.p?' open':'')+'><summary>Eşleşmeyi düzenle</summary><select data-workbook-row="'+row.number+'" aria-label="Excel satırı '+row.number+' için çalışan"><option value="">Otomatik eşleştirme</option>'+options+'</select></details>':'';
-   const create=!row.p&&!row.sourceProblem&&validCostMonth(form.elements.month.value)?btn('Yeni personel oluştur','monthlyworkbookperson:'+row.number):'';
-   return tr([row.number,esc(row.name),match+control+create,typeof row.paid==='number'?money(row.paid):'—',typeof row.total==='number'?money(row.total):'—',row.problem?'—':money(row.expectedTotal),
+   const known=!row.p&&row.sameName.length?'<p class="small muted">Aynı adlı kayıt: '+row.sameName.map(p=>esc(p.name+' · '+p.id+' · '+(p.insuranceCompany||'Sigorta işvereni eksik'))).join('<br>')+'</p>':'';
+   const create=!row.p&&!row.sameName.length&&!row.sourceProblem&&validCostMonth(form.elements.month.value)?btn('Yeni personel oluştur','monthlyworkbookperson:'+row.number):'';
+   return tr([row.number,esc(row.name),match+known+control+create,typeof row.paid==='number'?money(row.paid):'—',typeof row.total==='number'?money(row.total):'—',row.problem?'—':money(row.expectedTotal),
     row.problem?'<span class="error">'+esc(row.problem)+'</span>':(row.total!==row.expectedTotal?'Hazır · 1 kuruş yuvarlama farkı':'Aktarıma hazır')]);
   })):'<p class="muted">Önizleme için ÇELMAK veya ÇELPA sayfası içeren Excel dosyasını seçin.</p>';
  form.querySelector('[type="submit"]').disabled=!count;
@@ -652,7 +654,7 @@ function openMonthlyWorkbookPerson(number){
  if(!importer)return;
  const row=monthlyWorkbookPreview(importer).find(item=>item.number===number);
  const month=importer.elements.month.value;
- if(!row||row.p||row.sourceProblem||!validCostMonth(month))return;
+ if(!row||row.p||row.sameName.length||row.sourceProblem||!validCostMonth(month))return;
  const sheet=importer.elements.sheet.value,employers=monthlyWorkbookSheetEmployers[personnelSearchText(sheet)];
  openForm('people');
  const form=dialog.querySelector('#record-form[data-kind="people"]');
