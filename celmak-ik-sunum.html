@@ -672,6 +672,13 @@ function openMonthlyWorkbookPerson(number){
  const notice=document.createElement('p');
  notice.className='notice';
  notice.textContent=costMonthLabel(month)+' maliyet satırı için yeni personel. Bildiğiniz bilgileri girin. Eksikler ana sayfada hatırlatılır. Excel maliyetini sonraki adımda onaylayacaksınız.';
+ const employerLabel=employer.closest('label');
+ const allowedEmployers=new Set(employers);
+ for(const option of employer.options){
+  if(option.value&&!allowedEmployers.has(option.value))option.remove();
+ }
+ employer.value=employers.length===1?employers[0]:'';
+ notice.append(employerLabel);
  form.querySelector('h2').after(notice);
  for(const key of [...costFields.map(([key])=>key),'grossSalary','netSalary','benefitsNote','otherExpenseNote']){
   const input=form.elements[key];
