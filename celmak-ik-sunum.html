@@ -397,8 +397,8 @@ function rotationDraftHasChanges(){if(typeof page==='undefined'||page!=='lines')
 function settingsDraftHasChanges(){if(typeof page==='undefined'||page!=='settings')return false;const form=document.getElementById('settings-form');return form?.tagName==='FORM'&&newRecordDraftHasChanges(form)}
 function cancelBulkDraft(form){form=form||dialog.querySelector('#bulk-form,#bulk-overtime-form,#bulk-education-form,#bulk-assign-form,#bulk-annual-form');if(!form)return;if(newRecordDraftHasChanges(form)&&!confirm('Kaydedilmemiş toplu işlem bilgileri var. İşlemi uygulamadan çıkmak istiyor musunuz?'))return;dialog.close()}
 function cancelControlledActionDraft(form){form=form||dialog.querySelector('#balance-form,#cancel-form,#restore-cost-form,#monthly-count-allocation-form,#person-photo-form,#employment-periods-form,#historical-work-form,#common-expense-form');if(!form)return;if(newRecordDraftHasChanges(form)&&!confirm('Kaydedilmemiş bilgiler var. Kaydetmeden geri dönmek istiyor musunuz?'))return;const id=form.dataset.person;dialog.close();if(form.id==='balance-form'&&form.dataset.returnProfile==='true'&&person(id))profile(id);if(form.id==='restore-cost-form'&&person(id)){if(form.dataset.returnHistory==='true')showCostHistory(id);else profile(id)}}
-function handleDialogCancel(e){if(dialog.querySelector?.('#personnel-excel-update-form')){e.preventDefault();dialog.querySelector('[data-excel-update-action="cancel"]')?.click();return true}if(dialog.querySelector?.('#personnel-import-file')){e.preventDefault();cancelPersonnelImport();return true}const routes=[...['#monthly-count-allocation-form','#historical-work-form','#common-expense-form','#person-photo-form','#employment-periods-form'].map(selector=>[selector,form=>cancelControlledActionDraft(form)]),['#advance-form',form=>closeAdvanceForm(form)],['#balance-form',form=>cancelControlledActionDraft(form)],['#cancel-form',form=>cancelControlledActionDraft(form)],['#restore-cost-form',form=>cancelControlledActionDraft(form)],['#bulk-annual-form',cancelBulkDraft],['#bulk-form',cancelBulkDraft],['#bulk-overtime-form',cancelBulkDraft],['#bulk-education-form',cancelBulkDraft],['#bulk-assign-form',cancelBulkDraft],['#note-form',cancelAuxiliaryDraft],['#note-cancel-form',cancelAuxiliaryDraft],['#onboarding-add-form',cancelAuxiliaryDraft],['#asset-return-form',cancelAuxiliaryDraft],['#training-complete-form',cancelAuxiliaryDraft],['#small-record-edit-form',cancelSmallRecordEdit],['#person-assignment-form',cancelPersonAssignment],['#payment-transaction-form',cancelPaymentTransactionDraft],['#monthly-cost-form',cancelMonthlyCost],['#attendance-cancel-form',cancelAttendanceCancellation],['#attendance-form',cancelAttendanceEdit],['#cost-form',form=>cancelCostEdit(form.dataset.returnProfile==='true'?form.dataset.person:'')],['#person-edit-form',cancelPersonEdit],['#leave-edit-form',cancelLeaveEdit],['#overtime-edit-form',cancelOvertimeEdit],['#education-edit-form',cancelEducationEdit],['#asset-edit-form',cancelAssetEdit],['#record-form',cancelNewRecord]];for(const [selector,cancel] of routes){const form=dialog.querySelector?.(selector);if(!form)continue;e.preventDefault();cancel(form);return true}return false}
-function currentEditDraftHasChanges(){if(typeof rotationDraftHasChanges==='function'&&rotationDraftHasChanges())return true;if(personnelExcelDraftHasChanges())return true;if(settingsDraftHasChanges())return true;if(!dialog.open)return false;if(dialog.querySelector?.('#personnel-import-file')&&personnelImportHasDraft())return true;const forms=[['#monthly-count-allocation-form',newRecordDraftHasChanges],['#historical-work-form',newRecordDraftHasChanges],['#common-expense-form',newRecordDraftHasChanges],['#person-photo-form',newRecordDraftHasChanges],['#employment-periods-form',newRecordDraftHasChanges],['#advance-form',newRecordDraftHasChanges],['#balance-form',newRecordDraftHasChanges],['#cancel-form',newRecordDraftHasChanges],['#restore-cost-form',newRecordDraftHasChanges],['#bulk-annual-form',newRecordDraftHasChanges],['#bulk-form',newRecordDraftHasChanges],['#bulk-overtime-form',newRecordDraftHasChanges],['#bulk-education-form',newRecordDraftHasChanges],['#bulk-assign-form',newRecordDraftHasChanges],['#note-form',newRecordDraftHasChanges],['#note-cancel-form',newRecordDraftHasChanges],['#onboarding-add-form',newRecordDraftHasChanges],['#asset-return-form',newRecordDraftHasChanges],['#training-complete-form',newRecordDraftHasChanges],['#small-record-edit-form',newRecordDraftHasChanges],['#person-assignment-form',personAssignmentDraftHasChanges],['#payment-transaction-form',newRecordDraftHasChanges],['#monthly-cost-form',newRecordDraftHasChanges],['#attendance-cancel-form',newRecordDraftHasChanges],['#attendance-form',attendanceDraftHasChanges],['#record-form',newRecordDraftHasChanges],['#cost-form',costDraftHasChanges],['#person-edit-form',personDraftHasChanges],['#leave-edit-form',leaveDraftHasChanges],['#overtime-edit-form',overtimeDraftHasChanges],['#education-edit-form',educationDraftHasChanges],['#asset-edit-form',assetDraftHasChanges]];for(const [selector,hasChanges] of forms){const form=dialog.querySelector?.(selector);if(form&&hasChanges(form))return true}return false}
+function handleDialogCancel(e){const workbook=dialog.querySelector?.('#monthly-workbook-import');if(workbook){e.preventDefault();cancelMonthlyWorkbookImport(workbook);return true}if(dialog.querySelector?.('#personnel-excel-update-form')){e.preventDefault();dialog.querySelector('[data-excel-update-action="cancel"]')?.click();return true}if(dialog.querySelector?.('#personnel-import-file')){e.preventDefault();cancelPersonnelImport();return true}const routes=[...['#monthly-count-allocation-form','#historical-work-form','#common-expense-form','#person-photo-form','#employment-periods-form'].map(selector=>[selector,form=>cancelControlledActionDraft(form)]),['#advance-form',form=>closeAdvanceForm(form)],['#balance-form',form=>cancelControlledActionDraft(form)],['#cancel-form',form=>cancelControlledActionDraft(form)],['#restore-cost-form',form=>cancelControlledActionDraft(form)],['#bulk-annual-form',cancelBulkDraft],['#bulk-form',cancelBulkDraft],['#bulk-overtime-form',cancelBulkDraft],['#bulk-education-form',cancelBulkDraft],['#bulk-assign-form',cancelBulkDraft],['#note-form',cancelAuxiliaryDraft],['#note-cancel-form',cancelAuxiliaryDraft],['#onboarding-add-form',cancelAuxiliaryDraft],['#asset-return-form',cancelAuxiliaryDraft],['#training-complete-form',cancelAuxiliaryDraft],['#small-record-edit-form',cancelSmallRecordEdit],['#person-assignment-form',cancelPersonAssignment],['#payment-transaction-form',cancelPaymentTransactionDraft],['#monthly-cost-form',cancelMonthlyCost],['#attendance-cancel-form',cancelAttendanceCancellation],['#attendance-form',cancelAttendanceEdit],['#cost-form',form=>cancelCostEdit(form.dataset.returnProfile==='true'?form.dataset.person:'')],['#person-edit-form',cancelPersonEdit],['#leave-edit-form',cancelLeaveEdit],['#overtime-edit-form',cancelOvertimeEdit],['#education-edit-form',cancelEducationEdit],['#asset-edit-form',cancelAssetEdit],['#record-form',cancelNewRecord]];for(const [selector,cancel] of routes){const form=dialog.querySelector?.(selector);if(!form)continue;e.preventDefault();cancel(form);return true}return false}
+function currentEditDraftHasChanges(){if(typeof rotationDraftHasChanges==='function'&&rotationDraftHasChanges())return true;if(personnelExcelDraftHasChanges())return true;if(settingsDraftHasChanges())return true;if(!dialog.open)return false;if(monthlyWorkbookDialogHasDraft())return true;if(dialog.querySelector?.('#personnel-import-file')&&personnelImportHasDraft())return true;const forms=[['#monthly-count-allocation-form',newRecordDraftHasChanges],['#historical-work-form',newRecordDraftHasChanges],['#common-expense-form',newRecordDraftHasChanges],['#person-photo-form',newRecordDraftHasChanges],['#employment-periods-form',newRecordDraftHasChanges],['#advance-form',newRecordDraftHasChanges],['#balance-form',newRecordDraftHasChanges],['#cancel-form',newRecordDraftHasChanges],['#restore-cost-form',newRecordDraftHasChanges],['#bulk-annual-form',newRecordDraftHasChanges],['#bulk-form',newRecordDraftHasChanges],['#bulk-overtime-form',newRecordDraftHasChanges],['#bulk-education-form',newRecordDraftHasChanges],['#bulk-assign-form',newRecordDraftHasChanges],['#note-form',newRecordDraftHasChanges],['#note-cancel-form',newRecordDraftHasChanges],['#onboarding-add-form',newRecordDraftHasChanges],['#asset-return-form',newRecordDraftHasChanges],['#training-complete-form',newRecordDraftHasChanges],['#small-record-edit-form',newRecordDraftHasChanges],['#person-assignment-form',personAssignmentDraftHasChanges],['#payment-transaction-form',newRecordDraftHasChanges],['#monthly-cost-form',newRecordDraftHasChanges],['#attendance-cancel-form',newRecordDraftHasChanges],['#attendance-form',attendanceDraftHasChanges],['#record-form',newRecordDraftHasChanges],['#cost-form',costDraftHasChanges],['#person-edit-form',personDraftHasChanges],['#leave-edit-form',leaveDraftHasChanges],['#overtime-edit-form',overtimeDraftHasChanges],['#education-edit-form',educationDraftHasChanges],['#asset-edit-form',assetDraftHasChanges]];for(const [selector,hasChanges] of forms){const form=dialog.querySelector?.(selector);if(form&&hasChanges(form))return true}return false}
 function warnBeforeLeaving(e){if(!currentEditDraftHasChanges()&&(typeof storageState==='undefined'||storageState.ok))return;e.preventDefault();e.returnValue='';return ''}
 function printCurrentScreen(){if(!dialog.open){const reports={leaves:showLeaveListDocument,overtime:showOvertimeListDocument,training:showTrainingListDocument,assets:showAssetListDocument,costs:showMonthlyCostDocument};if(reports[page]){reports[page]();return}}window.print()}
 function openRecordEdit(kind,id){const config={leaves:['leave-edit-form',editLeave],overtime:['overtime-edit-form',editOvertime],training:['education-edit-form',editEducationForm],assets:['asset-edit-form',editAsset]},entry=config[kind],record=db[kind]?.find(x=>x.id===id);if(!entry||!record)return;const fromProfile=dialog.open&&!!document.getElementById('person-history'),source=dialog.querySelector('[data-source-record]'),fromDocument=!fromProfile&&source?.dataset.sourceRecord===id&&source?.dataset.sourceKind===kind;entry[1](id);const form=document.getElementById(entry[0]);if(!form)return;if(fromProfile){form.dataset.returnPerson=record.person;form.dataset.returnTab=kind}else if(fromDocument){form.dataset.returnDocument=kind;form.dataset.returnRecord=id}if(fromProfile||fromDocument){const button=form.querySelector('.dialogactions [data-action]');if(button)button.textContent=fromProfile?'Kaydetmeden kayıt listesine dön':'Kaydetmeden özete dön'}}
@@ -669,6 +669,21 @@ function monthlyCostDocument(){const rows=monthlyCostRows(selectedCostMonth,mont
 function showMonthlyCostDocument(){dialog.innerHTML=monthlyCostDocument()+'<div class="dialogactions">'+btn('Bu ayın maaş kayıtlarını aç','sourcepage:costs')+btn('Yazdır / PDF kaydet','print','primary')+btn('Aylık listeye dön','close')+'</div>';if(!dialog.open)dialog.showModal()}
 // MONTHLY_COSTS_END
 const monthlyWorkbookImports=new WeakMap();
+function monthlyWorkbookHasDraft(form){
+ const source=form&&monthlyWorkbookImports.get(form);
+ return Boolean(source&&(source.loading||source.sheets.size));
+}
+function monthlyWorkbookDialogHasDraft(){
+ const importer=dialog.querySelector?.('#monthly-workbook-import');
+ const personDraft=monthlyWorkbookPersonDrafts.get(dialog.querySelector?.('#record-form'));
+ return monthlyWorkbookHasDraft(importer||personDraft?.importer);
+}
+function cancelMonthlyWorkbookImport(form){
+ if(!form)return;
+ if(monthlyWorkbookHasDraft(form)&&!confirm('Excel önizlemesi ve eşleştirmeler kapanacak. Aktarmadan çıkmak istiyor musunuz?'))return;
+ monthlyWorkbookImports.delete(form);
+ dialog.close();
+}
 const monthlyWorkbookPersonDrafts=new WeakMap();
 const monthlyWorkbookColumns=[[4,'salary'],[5,'garnishment'],[6,'transportAllowance'],[7,'cashPayment'],[3,'employer'],[9,'transport'],[10,'food'],[11,'marketVoucher'],[12,'compensation']];
 const monthlyWorkbookSheetEmployers={celmak:['ÇELMAK Sanayi','ÇELMAK İbirler'],celpa:['ÇELPA']};
@@ -707,15 +722,25 @@ function monthlyWorkbookPreview(form){
  const employers=monthlyWorkbookSheetEmployers[personnelSearchText(sheet)]||[];
  const rows=source?.sheets.get(sheet)||[];
  const manual=source?.selections.get(sheet);
- const candidates=db.people.filter(p=>employers.includes(p.insuranceCompany));
+ if(!rows.length)return [];
+ const peopleByName=new Map(),peopleByUid=new Map();
+ for(const person of db.people){
+  const name=monthlyWorkbookName(person.name);
+  if(!peopleByName.has(name))peopleByName.set(name,[]);
+  peopleByName.get(name).push(person);
+  if(!peopleByUid.has(person.uid))peopleByUid.set(person.uid,person);
+ }
+ const recorded=new Set(db.monthlyCosts.filter(record=>record.month===month).map(record=>record.uid));
  const names=new Map();
  for(const row of rows){const key=monthlyWorkbookName(row.name);names.set(key,(names.get(key)||0)+1)}
  const preview=rows.map(row=>{
   const key=monthlyWorkbookName(row.name),selectedUid=manual?.get(row.number);
-  const sameName=db.people.filter(p=>monthlyWorkbookName(p.name)===key);
-  const matches=sameName.filter(p=>candidates.includes(p));
-  const p=selectedUid?db.people.find(person=>person.uid===selectedUid&&(!person.insuranceCompany||employers.includes(person.insuranceCompany))):matches.length===1&&names.get(key)===1?matches[0]:null;
-  const existing=p&&db.monthlyCosts.find(record=>record.uid===p.uid&&record.month===month);
+  const sameName=peopleByName.get(key)||[];
+  const matches=sameName.filter(p=>employers.includes(p.insuranceCompany));
+  const selected=peopleByUid.get(selectedUid);
+  const p=selectedUid?(selected&&(!selected.insuranceCompany||employers.includes(selected.insuranceCompany))?selected:null):
+   matches.length===1&&names.get(key)===1?matches[0]:null;
+  const existing=p&&recorded.has(p.uid);
   const problem=row.problem||(!validCostMonth(month)?'Ayı seçin':selectedUid&&!p?'Elle seçilen çalışan artık uygun değil':!p?(matches.length>1||names.get(key)>1?'Belirsiz eşleşme · çalışan seçin':sameName.length?'Aynı adlı kayıt var · işveren veya çalışma dönemini kontrol edin':'Bu adla personel bulunamadı'):!monthlyWorkbookEligible(p,month)?'Çalışan bu dönemde uygun değil':existing?'Bu aya ait ayrı maliyet kaydı var':'');
   return {...row,p,selectedUid,sameName,sourceProblem:row.problem,problem};
  });
@@ -741,11 +766,17 @@ function renderMonthlyWorkbookPreview(form){
  const count=rows.filter(row=>!row.problem).length;
  const roundingCount=rows.filter(row=>!row.problem&&(row.paidDifference||row.totalDifference)).length;
  const roundingNote=roundingCount?'<p class="notice"><strong>'+roundingCount+' hazır satırda 1 kuruş fark var.</strong> Sistem her kalemi kuruşa yuvarlayıp toplar. Kayıtlara ve raporlara sistemin kalem toplamı yansır.</p>':'';
+ const reviewReasons=new Map();
+ for(const row of rows)if(row.problem)reviewReasons.set(row.problem,(reviewReasons.get(row.problem)||0)+1);
+ const reviewSummary=reviewReasons.size?'<details class="notice"><summary>İnceleme nedenleri · '+reviewReasons.size+' farklı neden</summary><ul>'+
+  [...reviewReasons].sort((a,b)=>b[1]-a[1]).map(([reason,count])=>'<li><button type="button" class="btn" data-workbook-review-reason="'+esc(reason)+'">'+esc(reason)+' · '+count+' satır</button></li>').join('')+'</ul></details>':'';
+ const month=form.elements.month.value;
+ const context='<p class="small muted">Dosya <strong>'+esc(source?.fileName||'Excel')+'</strong> · Sayfa <strong>'+esc(sheet)+'</strong> · Kayıt ayı <strong>'+esc(validCostMonth(month)?costMonthLabel(month):'Seçilmedi')+'</strong></p>';
  const nameMatches=rows.filter(row=>row.sameName.length).length;
  const scope='<p class="small muted">Bu tarayıcıdaki personel: <strong>'+db.people.length+'</strong> · Excel’de sistemde adı bulunan satır: <strong>'+nameMatches+' / '+rows.length+'</strong></p>';
  const noNames=rows.length&&!nameMatches?'<p class="notice">Bu sayfadaki adlar açık personel listesinde bulunamadı. Daha önce aktarım yaptığınız tarayıcı ve uygulama adresindeki Personel ve Özlük listesini kontrol edin. Gerekirse önce temel personel listesini aktarın.</p>':'';
- form.querySelector('#monthly-workbook-import-preview').innerHTML=rows.length?
-  monthlyWorkbookColumnGuide(source,sheet)+scope+noNames+(!db.people.length?'<p class="notice">Bu oturumda personel kaydı bulunmuyor. Mevcut personel listenizi açın veya ilgili satırdan yeni personel oluşturun.</p>':!candidates.length&&validCostMonth(form.elements.month.value)?'<p class="notice">Bu ay ve sayfa için elle seçilebilecek çalışan yok. Aynı adlı kayıtların sigorta işverenini ve işe giriş tarihini Personel ve Özlük ekranında kontrol edin.</p>':'')+'<p><strong>'+count+' aktarılabilir · '+(rows.length-count)+' inceleme gerekiyor</strong></p>'+roundingNote+
+ form.querySelector('#monthly-workbook-import-preview').innerHTML=(source?.warning?'<p class="notice" role="status">'+esc(source.warning)+'</p>':'')+(rows.length?
+  context+monthlyWorkbookColumnGuide(source,sheet)+scope+noNames+(!db.people.length?'<p class="notice">Bu oturumda personel kaydı bulunmuyor. Mevcut personel listenizi açın veya ilgili satırdan yeni personel oluşturun.</p>':!candidates.length&&validCostMonth(form.elements.month.value)?'<p class="notice">Bu ay ve sayfa için elle seçilebilecek çalışan yok. Aynı adlı kayıtların sigorta işverenini ve işe giriş tarihini Personel ve Özlük ekranında kontrol edin.</p>':'')+'<p><strong>'+count+' aktarılabilir · '+(rows.length-count)+' inceleme gerekiyor</strong></p>'+roundingNote+reviewSummary+
   '<div id="monthly-workbook-preview-rows">'+table(['Excel satırı','Excel’deki ad soyad','Sistemdeki çalışan','Ödenen maaş','Excel maliyeti','Sistem maliyeti','Durum'],rows.map(row=>{
    const match=row.p?esc(row.p.name)+' · '+esc(row.p.id)+'<br><span class="small muted">'+esc(row.p.insuranceCompany||'Sigorta işvereni eksik')+' · '+(row.selectedUid?'Elle seçildi':'Otomatik eşleşme')+'</span>':'Eşleşme yok';
    const options=candidates.map(p=>'<option value="'+esc(p.uid)+'"'+(row.selectedUid===p.uid?' selected':'')+'>'+esc(p.name+' · '+p.id+' · '+(p.insuranceCompany||'Sigorta işvereni eksik'))+'</option>').join('');
@@ -760,11 +791,12 @@ function renderMonthlyWorkbookPreview(form){
     '<details><summary>Hazır · 1 kuruş fark</summary><p class="small">'+differences.map(esc).join('<br>')+'</p></details>':'Aktarıma hazır';
    return tr([row.number,esc(row.name),match+known+control+create,typeof row.paid==='number'?money(row.paid):'—',typeof row.total==='number'?money(row.total):'—',row.problem?'—':money(row.expectedTotal),
     status]);
-  }))+'</div>':'<p class="muted">Önizleme için ÇELMAK veya ÇELPA sayfası içeren Excel dosyasını seçin.</p>';
+  }))+'</div>':'<p class="muted">Önizleme için ÇELMAK veya ÇELPA sayfası içeren Excel dosyasını seçin.</p>');
  const renderedRows=form.querySelectorAll('#monthly-workbook-preview-rows tbody tr');
  for(const [index,element] of renderedRows.entries()){
   const row=rows[index];
   element.dataset.workbookStatus=row.problem?'review':'ready';
+  element.dataset.workbookProblem=row.problem||'';
   element.dataset.workbookRounding=String(!row.problem&&Boolean(row.paidDifference||row.totalDifference));
   element.dataset.workbookSearch=personnelSearchText([row.number,row.name,row.p?.name,row.p?.id,row.problem,...row.sameName.map(p=>p.name+' '+p.id)].join(' '));
  }
@@ -774,21 +806,30 @@ function renderMonthlyWorkbookPreview(form){
  const error=form.querySelector('#monthly-workbook-import-error');
  error.textContent=source?.error||'';
 }
+function resetMonthlyWorkbookFilters(form){
+ delete form.dataset.workbookExactReason;
+ form.elements.previewQuery.value='';
+ form.elements.previewStatus.value='';
+}
 function filterMonthlyWorkbookPreview(form){
  const query=personnelSearchText(form.elements.previewQuery.value).split(' ').filter(Boolean);
  const status=form.elements.previewStatus.value;
+ const clear=form.querySelector('[data-action="monthlyworkbookclearfilters"]');
+ if(clear)clear.disabled=!query.length&&!status;
  const rows=form.querySelectorAll('#monthly-workbook-preview-rows tbody tr');
  let visible=0,ready=0,hiddenReady=0;
  for(const row of rows){
   const matchesStatus=status==='rounding'?row.dataset.workbookRounding==='true':!status||status===row.dataset.workbookStatus;
-  row.hidden=!(matchesStatus&&query.every(term=>row.dataset.workbookSearch.includes(term)));
+  const reason=form.dataset.workbookExactReason;
+  const matchesQuery=reason?row.dataset.workbookProblem===reason:query.every(term=>row.dataset.workbookSearch.includes(term));
+  row.hidden=!(matchesStatus&&matchesQuery);
   if(!row.hidden)visible++;
   if(row.dataset.workbookStatus==='ready'){
    ready++;
    if(row.hidden)hiddenReady++;
   }
  }
- form.querySelector('#monthly-workbook-preview-count').textContent=rows.length?
+ form.querySelector('#monthly-workbook-preview-count').textContent=monthlyWorkbookImports.get(form)?.loading?'Excel okunuyor, lütfen bekleyin…':rows.length?
   visible+' / '+rows.length+' satır gösteriliyor.'+(visible?'':' Aramayı veya durum filtresini değiştirin.')+
   (hiddenReady?' Görünüm dışında kalan '+hiddenReady+' hazır satır da aktarılır.':''):'';
  form.querySelector('[type="submit"]').textContent=ready?ready+' hazır satırı aktar':'Hazır satırları aktar';
@@ -855,15 +896,16 @@ function openMonthlyWorkbookImport(){
   '<div class="fields"><label>Maliyet ayı<input name="month" type="month" required></label>'+
   '<label>Maliyet Excel’i<input name="workbook" type="file" accept=".xlsx,.xls" required></label><label>Çalışma sayfası<select name="sheet" required disabled><option value="">Dosya seçin</option></select></label></div>'+
   '<div class="toolbar"><label>Önizlemede ara<input name="previewQuery" type="search" placeholder="Ad, sicil veya Excel satırı"></label>'+
-  '<label>Satır durumu<select name="previewStatus"><option value="">Tüm satırlar</option><option value="review">İnceleme gerekiyor</option><option value="ready">Aktarıma hazır</option><option value="rounding">1 kuruş farkı olan hazır satırlar</option></select></label></div>'+
+  '<label>Satır durumu<select name="previewStatus"><option value="">Tüm satırlar</option><option value="review">İnceleme gerekiyor</option><option value="ready">Aktarıma hazır</option><option value="rounding">1 kuruş farkı olan hazır satırlar</option></select></label><button type="button" class="btn" data-action="monthlyworkbookclearfilters" disabled>Filtreleri temizle</button></div>'+
   '<p id="monthly-workbook-preview-count" class="small muted" aria-live="polite"></p>'+
   '<div id="monthly-workbook-import-preview"></div><p class="small muted">Hazır satırlar seçilen aya kaydedilir. Arama ve filtre yalnızca görünümü değiştirir. Tutarlar kuruşa yuvarlanır. Mevcut aylık kayıtlar ve inceleme gereken satırlar aktarılmaz.</p>'+
   '<label class="check"><input name="confirm" type="checkbox" required> Dönemi ve hazır satırların eşleşmelerini kontrol ettim.</label>'+
-  '<p id="monthly-workbook-import-error" class="error" role="alert"></p><div class="dialogactions">'+btn('Vazgeç','close')+'<button class="btn primary" type="submit" disabled>Hazır satırları aktar</button></div></form>';
+  '<p id="monthly-workbook-import-error" class="error" role="alert"></p><div class="dialogactions">'+btn('Vazgeç','monthlyworkbookcancel')+'<button class="btn primary" type="submit" disabled>Hazır satırları aktar</button></div></form>';
  if(!dialog.open)dialog.showModal();
 }
 async function readMonthlyWorkbookImport(form,file){
- const source={sheets:new Map(),headers:new Map(),selections:new Map(),error:''};
+ resetMonthlyWorkbookFilters(form);
+ const source={sheets:new Map(),headers:new Map(),selections:new Map(),error:'',loading:Boolean(file),fileName:file?.name||''};
  monthlyWorkbookImports.set(form,source);
  form.elements.sheet.innerHTML='<option value="">Dosya seçin</option>';
  form.elements.sheet.disabled=true;
@@ -875,12 +917,21 @@ async function readMonthlyWorkbookImport(form,file){
   const buffer=await file.arrayBuffer();
   if(!form.isConnected||monthlyWorkbookImports.get(form)!==source)return;
   const book=XLSX.read(buffer,{type:'array',sheetRows:1004,cellFormula:true,cellHTML:false});
+  const sheetErrors=[];
   for(const name of book.SheetNames.filter(name=>Object.hasOwn(monthlyWorkbookSheetEmployers,personnelSearchText(name)))){
-   source.sheets.set(name,parseMonthlyWorkbookSheet(book.Sheets[name]));
-   source.headers.set(name,XLSX.utils.sheet_to_json(book.Sheets[name],{header:1,range:0,defval:''})[0]);
-   source.selections.set(name,new Map());
+   try{
+    const rows=parseMonthlyWorkbookSheet(book.Sheets[name]);
+    if(!rows.length)throw Error('Personel maliyet satırı bulunamadı.');
+    const headers=XLSX.utils.sheet_to_json(book.Sheets[name],{header:1,range:0,defval:''})[0];
+    source.sheets.set(name,rows);
+    source.headers.set(name,headers);
+    source.selections.set(name,new Map());
+   }catch(error){
+    sheetErrors.push(name+' · '+error.message);
+   }
   }
-  if(!source.sheets.size)throw Error('Dosyada ÇELMAK veya ÇELPA çalışma sayfası bulunamadı.');
+  if(!source.sheets.size)throw Error(sheetErrors.join(' | ')||'Dosyada ÇELMAK veya ÇELPA çalışma sayfası bulunamadı.');
+  if(sheetErrors.length)source.warning='Önizlemeye alınamayan sayfalar: '+sheetErrors.join(' | ');
   form.elements.sheet.innerHTML=[...source.sheets.keys()].map(name=>'<option value="'+esc(name)+'">'+esc(name)+'</option>').join('');
   form.elements.sheet.disabled=false;
  }catch(error){
@@ -888,10 +939,14 @@ async function readMonthlyWorkbookImport(form,file){
   source.sheets.clear();
   source.error=error.message||'Excel okunamadı.';
  }
+ source.loading=false;
  renderMonthlyWorkbookPreview(form);
 }
 document.addEventListener('input',event=>{
- if(event.target.name==='previewQuery'&&event.target.form?.id==='monthly-workbook-import')filterMonthlyWorkbookPreview(event.target.form);
+ if(event.target.name==='previewQuery'&&event.target.form?.id==='monthly-workbook-import'){
+  delete event.target.form.dataset.workbookExactReason;
+  filterMonthlyWorkbookPreview(event.target.form);
+ }
 });
 function saveMonthlyWorkbookImport(form){
  const error=form.querySelector('#monthly-workbook-import-error');
@@ -899,12 +954,14 @@ function saveMonthlyWorkbookImport(form){
  const month=form.elements.month.value,rows=monthlyWorkbookPreview(form).filter(row=>!row.problem);
  if(!form.elements.confirm.checked||!rows.length){error.textContent='Dönemi ve aktarıma hazır eşleşmeleri kontrol edin.';return}
  const at=new Date().toISOString();
+ const fileName=String(monthlyWorkbookImports.get(form)?.fileName||'').replace(/\s+/g,' ').trim().slice(0,120);
+ const workbookSource=[fileName,form.elements.sheet.value].filter(Boolean).join(' | ');
  const records=rows.map(({p,costs,selectedUid,number})=>({
   month,uid:p.uid,person:p.id,name:p.name,dept:p.dept||'',role:p.role||'',line:p.line||'Belirtilmedi',
   costs,otherExpenseNote:'',otherMonthOnly:true,workbookMonthOnly:true,paymentRules:{cashPayment:'once',compensation:'once'},
-  reason:'Personel maliyet Excel’i · '+form.elements.sheet.value+' · Satır '+number+(selectedUid?' · Elle eşleşti':''),updatedAt:at,changes:[]
+  reason:'Personel maliyet Excel’i · '+workbookSource+' · Satır '+number+(selectedUid?' · Elle eşleşti':''),updatedAt:at,changes:[]
  }));
- const message=costMonthLabel(month)+' · '+records.length+' personel maliyeti Excel’den aktarıldı.';
+ const message=costMonthLabel(month)+' · '+records.length+' personel maliyeti Excel’den aktarıldı. '+workbookSource;
  const monthlyCosts=[...db.monthlyCosts,...records];
  let next,snapshot;
  try{
@@ -932,14 +989,42 @@ function saveMonthlyWorkbookImport(form){
 document.addEventListener('click',event=>{
  const action=event.target.closest?.('[data-action]')?.dataset.action;
  if(action==='monthlyworkbookopen')openMonthlyWorkbookImport();
+ if(action==='monthlyworkbookcancel')cancelMonthlyWorkbookImport(dialog.querySelector('#monthly-workbook-import'));
+ const reasonButton=event.target.closest('[data-workbook-review-reason]');
+ if(reasonButton){
+  const form=reasonButton.closest('#monthly-workbook-import');
+  if(!form)return;
+  form.dataset.workbookExactReason=reasonButton.dataset.workbookReviewReason;
+  form.elements.previewQuery.value=reasonButton.dataset.workbookReviewReason;
+  form.elements.previewStatus.value='review';
+  filterMonthlyWorkbookPreview(form);
+  form.elements.previewQuery.focus();
+  return;
+ }
+ if(action==='monthlyworkbookclearfilters'){
+  const form=dialog.querySelector('#monthly-workbook-import');
+  if(!form)return;
+  resetMonthlyWorkbookFilters(form);
+  filterMonthlyWorkbookPreview(form);
+  form.elements.previewQuery.focus();
+ }
  if(action?.startsWith('monthlyworkbookperson:'))openMonthlyWorkbookPerson(Number(action.split(':')[1]));
 });
 document.addEventListener('change',event=>{
  const form=event.target.form;
  if(form?.id!=='monthly-workbook-import')return;
  if(event.target.name==='workbook')readMonthlyWorkbookImport(form,event.target.files?.[0]);
- else if(['month','sheet'].includes(event.target.name))renderMonthlyWorkbookPreview(form);
- else if(event.target.name==='previewStatus')filterMonthlyWorkbookPreview(form);
+ else if(['month','sheet'].includes(event.target.name)){
+  if(event.target.name==='sheet')resetMonthlyWorkbookFilters(form);
+  renderMonthlyWorkbookPreview(form);
+ }
+ else if(event.target.name==='previewStatus'){
+  if(form.dataset.workbookExactReason){
+   delete form.dataset.workbookExactReason;
+   form.elements.previewQuery.value='';
+  }
+  filterMonthlyWorkbookPreview(form);
+ }
  else if(event.target.hasAttribute('data-workbook-row')){
   const row=Number(event.target.dataset.workbookRow),selection=monthlyWorkbookImports.get(form)?.selections.get(form.elements.sheet.value);
   if(!selection)return;
@@ -2066,6 +2151,10 @@ if(typeof window!=='undefined')window.addEventListener('beforeunload',warnBefore
 document.addEventListener('keydown',handleRecordPersonSearchKey);
 document.addEventListener('input',e=>{if(e.target.name==='other')syncOtherExpenseRequirement(e.target.closest('form'));if(e.target.closest?.('#rotation-form'))updateRotationPreview();if(e.target.id==='line-report-query'){const pos=e.target.selectionStart;lineReportQuery=e.target.value;lineReportPage=1;render();const input=document.getElementById('line-report-query');input?.focus?.();input?.setSelectionRange?.(pos,pos)}if(e.target.id==='archive-query'&&!e.isComposing){const pos=e.target.selectionStart;archiveQuery=e.target.value;archivePage=1;render();const input=document.getElementById('archive-query');input?.focus?.();input?.setSelectionRange?.(pos,pos)}if(e.target.id==='rotation-search'){const pos=e.target.selectionStart;rotationQuery=e.target.value;rotationPage=1;repaintRotation();const el=document.getElementById('rotation-search');el?.focus?.();el?.setSelectionRange?.(pos,pos)}if(e.target.id==='monthly-cost-search'){const position=e.target.selectionStart;monthlyCostQuery=e.target.value;paymentTrackingPage=1;render();const input=document.getElementById('monthly-cost-search');input?.focus?.();input?.setSelectionRange?.(position,position);}if(e.target.closest?.('#monthly-cost-form'))updateMonthlyCostTotal();if(e.target.closest?.('#record-form'))updateRecordRequiredSummary();if(['title','due'].includes(e.target.name)&&e.target.closest?.('#record-form'))updateTrainingDuplicatePreview();if(e.target.name==='serial'&&e.target.closest?.('#record-form'))updateAssetSerialPreview();if(['due','expires'].includes(e.target.name)&&e.target.closest?.('#record-form, #education-edit-form'))updateTrainingValidityPreview();if(e.target.id==='record-person-search')filterRecordPersonOptions(e.target.value);if(e.target.id==='nav-search')setNavigationSearch(e.target.value);if(e.target.closest('#person-edit-form'))updatePersonEmploymentPreview(e.target.closest('#person-edit-form'));if(e.target.closest('#record-form[data-kind="people"]'))updateNewPersonCostPreview(e.target.closest('#record-form'));if(e.target.closest('#person-assignment-form'))updatePersonAssignmentPreview();if(e.target.id==='followup-search'){followupPageNumber=1;followupQuery=e.target.value;const position=e.target.selectionStart;main.innerHTML=followupPage();const input=document.getElementById('followup-search');input.focus();input.setSelectionRange(position,position);}if(e.target.closest('#training-complete-form'))updateTrainingCompletionPreview();if(e.target.closest('#record-form[data-kind="overtime"]'))updateNewOvertimePreview();if(e.target.closest('#overtime-edit-form'))updateOvertimeEditPreview();if(e.target.closest('#bulk-form'))updateBulkAttendancePreview();if(e.target.closest('#bulk-overtime-form'))updateBulkOvertimePreview();if(e.target.closest('#bulk-education-form'))updateBulkEducationPreview();if(e.target.id==='leave-search'){recordFilters.leaveQuery=e.target.value;recordPage=1;document.getElementById('records-view').innerHTML=recordsTable('leaves');}if(e.target.id==='asset-search'){recordFilters.assetQuery=e.target.value;recordPage=1;document.getElementById('records-view').innerHTML=recordsTable('assets');}if(e.target.id==='overtime-search'){recordFilters.overtimeQuery=e.target.value;recordPage=1;document.getElementById('records-view').innerHTML=recordsTable('overtime');}if(e.target.id==='training-search'){recordFilters.trainingQuery=e.target.value;recordPage=1;document.getElementById('records-view').innerHTML=recordsTable('training');}if(e.target.id==='monthly-search'){monthlyPageNumber=1;monthlyQuery=e.target.value;const pos=e.target.selectionStart;main.innerHTML=monthlyPage();const input=document.getElementById('monthly-search');input.focus();input.setSelectionRange(pos,pos);}if(e.target.closest('#attendance-form'))queueMicrotask(updateAttendancePreview);if(e.target.closest('#leave-edit-form')||e.target.closest('#record-form[data-kind="leaves"]'))updateLeavePreview();if(e.target.closest('#selected-missing-form'))updateSelectedMissingSummary();if(e.target.id==='missing-search'){missingFilters.person='';selectedMissing.clear();missingFilters.query=e.target.value;missingLimit=50;document.getElementById('missing-results').innerHTML=missingResults()}if(e.target.id==='directory-search'){directoryPageNumber=1;directoryFilters.query=e.target.value;document.getElementById('directory-results').innerHTML=directoryTable()}if(e.target.id==='attendance-search'){attendanceFilters.person='';const position=e.target.selectionStart;attendancePageNumber=1;attendanceFilters.query=e.target.value;main.innerHTML=attendancePage();const input=document.getElementById('attendance-search');input.focus();input.setSelectionRange(position,position);}if(e.target.closest('#cost-form'))updateCostDraft(e.target.closest('#cost-form'));if(e.target.id==='audit-search'){auditFilters.query=e.target.value;document.getElementById('audit-results').innerHTML=auditTable()}if(e.target.id==='cost-search'){costFilters.person='';costPageNumber=1;query=e.target.value;const input=e.target;const pos=input.selectionStart;main.innerHTML=costsPage();const replacement=document.getElementById('cost-search');replacement.focus();replacement.setSelectionRange(pos,pos);}if(e.target.id==='search'){query=e.target.value;peoplePage=1;renderPeople()}});document.addEventListener('change',e=>{if(e.target.closest?.('#rotation-form'))updateRotationPreview();if(e.target.id==='monthly-cost-status'&&['','missing','inherited','saved'].includes(e.target.value)){monthlyCostStatus=e.target.value;render()}if(e.target.id==='monthly-comparison-filter'&&['all','changed','unknown'].includes(e.target.value)){monthlyComparisonFilter=e.target.value;showMonthlyCostComparison()}if(e.target.id==='payment-tracking-status'&&['','pending','none','partial','complete','excess'].includes(e.target.value)){paymentTrackingStatus=e.target.value;paymentTrackingPage=1;render()}if(e.target.closest?.('#monthly-cost-form'))updateMonthlyCostTotal();if(e.target.id==='line-report-month'&&validCostMonth(e.target.value)){lineReportMonth=e.target.value;lineReportPage=1;render()}if(e.target.id==='line-report-line'){lineReportLine=e.target.value;lineReportPage=1;render()}if(e.target.id==='archive-change-type'){archiveChangeType=e.target.value;archivePage=1;render()}if(e.target.id==='archive-record-month'){archiveRecordMonth=e.target.value;archivePage=1;render()}if(e.target.id==='archive-month'){archiveMonth=e.target.value;archivePage=1;render()}if(e.target.id==='archive-section'){archiveSection=e.target.value;archivePage=1;render()}if(e.target.id==='record-month')setRecordMonth(e.target.value);if(e.target.dataset?.rotationPerson){const uid=e.target.dataset.rotationPerson;e.target.checked?rotationSelection.add(uid):rotationSelection.delete(uid);repaintRotation()}if(e.target.id==='rotation-include-former'){rotationIncludeFormer=e.target.checked;if(!rotationIncludeFormer)for(const p of db.people)if(p.status!=='Aktif')rotationSelection.delete(p.uid);rotationPage=1;repaintRotation()}if(e.target.id==='rotation-dept'){rotationDept=e.target.value;rotationPage=1;repaintRotation()}if(e.target.id==='rotation-line'){rotationLine=e.target.value;rotationPage=1;repaintRotation()}if(e.target.id==='rotation-month'&&validCostMonth(e.target.value)){rotationMonth=e.target.value;repaintRotation()}if(['monthly-cost-month','monthly-cost-saved-month'].includes(e.target.id))setCostMonth(e.target.value);if(e.target.id==='monthly-cost-dept'){monthlyCostDept=e.target.value;paymentTrackingPage=1;render();}if(e.target.id==='record-page-size')setRecordPageSize(e.target.value);if(e.target.closest?.('#record-form'))updateRecordRequiredSummary();if(e.target.name==='returnCondition'&&e.target.closest?.('#asset-return-form'))updateAssetReturnGuidance();if(e.target.name==='person'&&e.target.closest?.('#record-form')){updateRecordPersonContext();updateTrainingDuplicatePreview();}if(e.target.id==='line-cost-view'){lineCostView=e.target.value==='average'?'average':'total';document.getElementById('line-cost-panel').outerHTML=lineCostPanel(true);}if(e.target.id==='attendance-sort'){attendanceFilters.sort=e.target.value;attendancePageNumber=1;main.innerHTML=attendancePage();}if(e.target.id==='people-employment'){peopleEmployment=e.target.value;peoplePage=1;renderPeople();}if(e.target.id==='people-contract'){peopleContract=e.target.value;peoplePage=1;renderPeople();}if(e.target.closest('#person-edit-form'))updatePersonEmploymentPreview(e.target.closest('#person-edit-form'));if(e.target.id==='people-start'){peopleStart=e.target.value;peoplePage=1;renderPeople();}if(e.target.id==='people-contact'){peopleContact=e.target.value;peoplePage=1;renderPeople();}if(e.target.closest('#record-form[data-kind="people"]'))updateNewPersonCostPreview(e.target.closest('#record-form'));if(e.target.closest('#person-assignment-form'))updatePersonAssignmentPreview();if(e.target.id==='followup-priority'){followupPageNumber=1;followupPriority=e.target.value;main.innerHTML=followupPage();}if(e.target.id==='people-today'){peopleToday=e.target.value;peoplePage=1;renderPeople();}if(e.target.id==='leave-return-missing'){leaveReturnOnlyMissing=e.target.checked;render();}if(e.target.closest('#training-complete-form'))updateTrainingCompletionPreview();if(e.target.closest('#record-form[data-kind="overtime"]'))updateNewOvertimePreview();if(e.target.closest('#overtime-edit-form'))updateOvertimeEditPreview();if(e.target.id==='monthly-only-missing'){monthlyPageNumber=1;monthlyOnlyMissing=e.target.checked;main.innerHTML=monthlyPage();}if(e.target.closest('#bulk-form')){if(e.target.name==='status')syncBulkAttendanceHours(e.target.closest('#bulk-form'));updateBulkAttendancePreview();}if(e.target.closest('#bulk-overtime-form'))updateBulkOvertimePreview();if(e.target.closest('#bulk-assign-form'))updateBulkAssignmentPreview();if(e.target.closest('#bulk-education-form'))updateBulkEducationPreview();if(e.target.id==='personnel-import-file'){const file=e.target.files[0];if(file)readPersonnelImport(file);}if(e.target.closest('#attendance-form'))queueMicrotask(updateAttendancePreview);if(e.target.closest('#leave-edit-form')||e.target.closest('#record-form[data-kind="leaves"]'))updateLeavePreview();if(e.target.closest('#selected-missing-form'))updateSelectedMissingSummary();if(e.target.dataset.missingSelection){if(e.target.checked)selectedMissing.add(e.target.dataset.missingSelection);else selectedMissing.delete(e.target.dataset.missingSelection);missingSelectionBar()}if(['missing-month','missing-dept','missing-line'].includes(e.target.id)){selectedMissing.clear();missingFilters[e.target.id.slice(8)]=e.target.value;missingLimit=50;document.getElementById('missing-results').innerHTML=missingResults()}if(e.target.id==='missing-hours'){const n=Number(e.target.value);if(!Number.isFinite(n)||n<0.5||n>24||n*2!==Math.floor(n*2)){toast('0,5–24 arası yarım saat adımlı süre girin.');e.target.value=attendanceDefaultHours;}else{attendanceDefaultHours=n;document.getElementById('missing-results').innerHTML=missingResults()}}if(['directory-dept','directory-line','directory-missing'].includes(e.target.id)){directoryPageNumber=1;directoryFilters[e.target.id.slice(10)]=e.target.value;document.getElementById('directory-results').innerHTML=directoryTable()}if(e.target.id==='attendance-status')setAttendanceStatusFilter(e.target.value);if(e.target.id==='attendance-default-hours'){const hours=Number(e.target.value);if(!Number.isFinite(hours)||hours<0.5||hours>24||hours*2!==Math.floor(hours*2)){toast('0,5–24 arası yarım saat adımlı süre girin.');e.target.value=attendanceDefaultHours;}else{attendanceDefaultHours=hours;main.innerHTML=attendancePage()}}if(e.target.id==='people-sort'){peopleSort=e.target.value;peoplePage=1;renderPeople()}if(e.target.id==='attendance-missing')setAttendanceMissingFilter(e.target.checked);if(['attendance-dept','attendance-line'].includes(e.target.id)){attendancePageNumber=1;attendanceFilters[e.target.id.slice(11)]=e.target.value;main.innerHTML=attendancePage()}if(['annual-dept','annual-line','annual-status'].includes(e.target.id)){annualFilters[e.target.id.slice(7)]=e.target.value;main.innerHTML=annualLeavePage()}if(e.target.closest('#attendance-form')){if(['person','date'].includes(e.target.name)&&!guardAttendanceContextChange(e.target.closest('#attendance-form'),e.target))return;if(e.target.name==='date'){const form=e.target.closest('#attendance-form'),select=form.querySelector('[name=person]'),previous=select.value;const eligible=db.people.filter(p=>employedOnDate(p,e.target.value));select.innerHTML='<option value="">Personel seçin</option>'+eligible.sort((a,b)=>a.name.localeCompare(b.name,'tr')||a.id.localeCompare(b.id,'tr')).map(p=>`<option value="${esc(p.id)}">${esc(personnelOptionLabel(p))}</option>`).join('');select.value=eligible.some(p=>p.id===previous)?previous:'';}if(['person','date'].includes(e.target.name))fillAttendance();if(e.target.name==='status'){const hours=document.querySelector('#attendance-form [name=hours]');if(e.target.value!=='Çalıştı')hours.value='0';else if(Number(hours.value)===0)hours.value=String(attendanceDefaultHours);}}if(e.target.id==='followup-category'){followupPageNumber=1;followupCategory=e.target.value;main.innerHTML=followupPage()}if(['movement-month','movement-dept','movement-line'].includes(e.target.id)){movementFilters[e.target.id.slice(9)]=e.target.value;main.innerHTML=movementPage()}if(['training-month','training-dept','training-line'].includes(e.target.id)){trainingFilters[e.target.id.slice(9)]=e.target.value;main.innerHTML=trainingReportPage()}if(e.target.id==='archive-before'||e.target.id==='archive-after'){archiveComparison[e.target.id.slice(8)]=Number(e.target.value);document.getElementById('archive-comparison-results').innerHTML=archiveComparisonTable();}if(e.target.id==='calendar-dept'){calendarDept=e.target.value;main.innerHTML=calendarPage()}if(e.target.id==='calendar-line'){calendarLine=e.target.value;main.innerHTML=calendarPage()}if(['ot-month','ot-dept','ot-line'].includes(e.target.id)){otFilters[e.target.id.slice(3)]=e.target.value;main.innerHTML=overtimeReportPage()}if(e.target.id==='monthly-dept'){monthlyPageNumber=1;monthlyDept=e.target.value;main.innerHTML=monthlyPage()}if(e.target.id==='monthly-line'){monthlyPageNumber=1;monthlyLine=e.target.value;main.innerHTML=monthlyPage()}if(e.target.id==='audit-start'||e.target.id==='audit-end'){auditFilters[e.target.id.slice(6)]=e.target.value;document.getElementById('audit-results').innerHTML=auditTable()}if(e.target.id==='leave-year'){leaveYear=e.target.value;main.innerHTML=annualLeavePage()}if(e.target.id==='people-home-line'){peopleHomeLine=e.target.value;peoplePage=1;renderPeople()}if(e.target.id==='people-line'){peopleLine=e.target.value;peoplePage=1;renderPeople()}if(e.target.id==='people-title'){peopleTitle=e.target.value;peoplePage=1;renderPeople()}if(e.target.id==='team-line'){changeTeamScope(e.target.id,e.target.value);}if(e.target.dataset.recordFilter){recordPage=1;recordFilters[e.target.dataset.recordFilter]=e.target.value;updateRecordAdvancedDisclosure();const error=document.getElementById('record-filter-error');if(recordFilters.start&&recordFilters.end&&recordFilters.start>recordFilters.end){error.textContent='Başlangıç tarihi bitişten sonra olamaz.';return}error.textContent='';document.getElementById('records-view').innerHTML=recordsTable(page);}if(['cost-dept','cost-line','cost-status','cost-completeness','cost-sort'].includes(e.target.id)){costPageNumber=1;costFilters[e.target.id.slice(5)]=e.target.value;main.innerHTML=costsPage();}if(e.target.id==='people-status'){peopleStatus=e.target.value;peoplePage=1;renderPeople()}if(e.target.id==='report-month'){monthlyPageNumber=1;reportMonth=e.target.value;main.innerHTML=monthlyPage()}if(e.target.id==='calendar-month'){calendarMonth=e.target.value;main.innerHTML=calendarPage()}if(e.target.id==='attendance-date')setDailyAttendanceDate(e.target.value);if(e.target.id==='department'){filter=e.target.value;peoplePage=1;renderPeople()}});
 dialog.addEventListener?.('cancel',handleDialogCancel);
+dialog.addEventListener?.('keydown',event=>{
+ if(event.key!=='Escape'||event.isComposing||!dialog.querySelector('#monthly-workbook-import'))return;
+ handleDialogCancel(event);
+});
 document.addEventListener('submit',e=>{if(e.target.id==='historical-work-form'){e.preventDefault();saveHistoricalWork(e.target);return}if(e.target.id==='common-expense-form'){e.preventDefault();saveCommonExpenses(e.target);return}if(e.target.id==='person-photo-form'){e.preventDefault();savePersonPhoto(e.target);return}if(e.target.id==='employment-periods-form'){e.preventDefault();saveEmploymentPeriods(e.target);return}if(e.target.id==='advance-form'){e.preventDefault();saveAdvance(e.target);return}if(e.target.id==='small-record-edit-form'){e.preventDefault();saveSmallRecordEdit(e.target);return}if(e.target.id==='profile-line-correction-form'){e.preventDefault();submitProfileLineCorrection(e.target);return}if(e.target.id==='payment-transaction-form'){e.preventDefault();savePaymentTransaction(e.target);return}if(e.target.id==='rotation-form'){e.preventDefault();saveRotation(e.target);return}if(e.target.id==='monthly-cost-form'){e.preventDefault();saveMonthlyCost(e.target,e.submitter?.dataset.monthlyNext==='true');return}if(e.target.id==='person-assignment-form'){e.preventDefault();savePersonAssignment(e.target);return}if(e.target.id==='quick-person-form'){e.preventDefault();quickPerson(e.target);}if(e.target.classList.contains('catalog-form')){e.preventDefault();addCatalog(e.target)}if(e.target.id==='asset-return-form'){e.preventDefault();saveAssetReturn(e.target)}if(e.target.id==='training-complete-form'){e.preventDefault();saveTrainingCompletion(e.target)}if(e.target.id==='cancel-form'){e.preventDefault();cancelRecord(e.target)}if(e.target.id==='remove-catalog-form'){e.preventDefault();removeCatalog(e.target)}if(e.target.id==='rename-catalog-form'){e.preventDefault();renameCatalog(e.target)}if(e.target.id==='person-delete-form'){e.preventDefault();deletePerson(e.target)}if(e.target.id==='bulk-assign-form'){e.preventDefault();saveBulkAssignment(e.target)}if(e.target.id==='cost-archive-form'){e.preventDefault();saveCostArchive(e.target)}if(e.target.id==='bulk-overtime-form'){e.preventDefault();saveBulkOvertime(e.target)}if(e.target.id==='onboarding-add-form'){e.preventDefault();saveOnboardingStep(e.target)}if(e.target.id==='nonworking-form'){e.preventDefault();saveNonWorkingDay(e.target)}if(e.target.id==='selected-missing-form'){e.preventDefault();saveSelectedMissing(e.target)}if(e.target.id==='missing-attendance-form'){e.preventDefault();saveMissingAttendance(e.target)}if(e.target.id==='asset-edit-form'){e.preventDefault();saveAssetEdit(e.target)}if(e.target.id==='restore-cost-form'){e.preventDefault();restoreCosts(e.target)}if(e.target.id==='leave-edit-form'){e.preventDefault();saveLeaveEdit(e.target)}if(e.target.id==='overtime-edit-form'){e.preventDefault();saveOvertimeEdit(e.target)}if(e.target.id==='education-edit-form'){e.preventDefault();saveEducationEdit(e.target)}if(e.target.id==='bulk-education-form'){e.preventDefault();saveBulkEducation(e.target)}if(e.target.id==='note-form'){e.preventDefault();saveNote(e.target)}if(e.target.id==='note-cancel-form'){e.preventDefault();cancelNote(e.target)}if(e.target.id==='attendance-cancel-form'){e.preventDefault();cancelAttendance(e.target)}if(e.target.id==='balance-form'){e.preventDefault();saveBalance(e.target)}if(e.target.id==='bulk-form'){e.preventDefault();saveBulk(e.target)}if(e.target.id==='attendance-form'){e.preventDefault();saveAttendance(e.target)}if(e.target.id==='person-edit-form'){e.preventDefault();savePerson(e.target)}if(e.target.id==='cost-form'){e.preventDefault();saveCost(e.target,e.submitter?.dataset.costNext==='true')}if(e.target.id==='record-form'){e.preventDefault();submitRecord(e.target)}if(e.target.id==='settings-form'){e.preventDefault();const data=Object.fromEntries(new FormData(e.target));const departments=[...new Set(data.departments.split('\n').map(x=>x.trim()).filter(Boolean))];const error=document.getElementById('settings-error');if(!data.company.trim()||!departments.length){error.textContent='Şirket adı ve en az bir departman gereklidir.';return}if(data.end<=data.start){error.textContent='İş bitişi başlangıçtan sonra olmalıdır.';return}const missing=db.people.filter(p=>p.dept&&!departments.includes(p.dept));if(missing.length){error.textContent='Personel atanmış departmanlar kaldırılamaz: '+[...new Set(missing.map(p=>p.dept))].join(', ');return}const onboardingSteps=[...new Set(String(data.onboardingSteps||'').split('\n').map(x=>x.trim()).filter(Boolean))];if(!onboardingSteps.length||onboardingSteps.length>30||onboardingSteps.some(x=>x.length>100)){error.textContent='1–30 işe giriş adımı tanımlayın; her adım en fazla 100 karakter olabilir.';return}const dailyHours=Number(data.dailyHours);if(!Number.isFinite(dailyHours)||dailyHours<0.5||dailyHours>24||dailyHours*2!==Math.floor(dailyHours*2)){error.textContent='Normal çalışma saati 0,5–24 arası, yarım saat adımlı olmalıdır.';return}const reminderDays=Number(data.reminderDays),leaveReminderDays=Number(data.leaveReminderDays);if(![reminderDays,leaveReminderDays].every(x=>Number.isInteger(x)&&x>=1&&x<=365)){error.textContent='Hatırlatma süreleri 1–365 gün olmalıdır.';return}attendanceDefaultHours=dailyHours;db.settings={...db.settings,dailyHours,reminderDays,leaveReminderDays,company:data.company.trim(),start:data.start,end:data.end,departments,onboardingSteps};save('Organizasyon ayarları güncellendi.')}});function createPresentationData(){
  const demo=structuredClone(seed);demo.demoDate=TODAY;demo.deletedPeople=[];demo.nonWorkingDays=[];
  const day=n=>{const d=new Date(TODAY+'T12:00:00');d.setDate(d.getDate()+n);return d.toLocaleDateString('sv-SE')};
