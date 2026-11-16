@@ -2798,8 +2798,10 @@ function organizationTransferPlans(input){
  if(input?.format!=='celmak-organization-approved-v1'||!validCostMonth(input.month)||!Array.isArray(input.rows)||!input.rows.length||input.rows.length>1000)throw Error('Onaylı organizasyon aktarım dosyası geçersiz.');
  const seen=new Set();
  return input.rows.map(row=>{
+  if(!row||typeof row!=='object'||typeof row.personId!=='string'||!row.personId||typeof row.systemName!=='string'||!row.systemName.trim()||typeof row.nationalId!=='string'||!personnelExcelTc(row.nationalId)||personnelExcelTc(row.nationalId)!==row.nationalId)throw Error('Her satırda sicil, sistemdeki ad soyad ve geçerli 11 haneli T.C. kimlik numarası olmalıdır.');
   const matches=db.people.filter(p=>p.id===row.personId&&personnelExcelTc(p.nationalId)===row.nationalId);
   if(matches.length!==1)throw Error('Sicil ve T.C. ile tek personel bulunamadı: '+String(row.personId||''));
+  if(db.people.filter(p=>personnelExcelTc(p.nationalId)===row.nationalId).length!==1)throw Error('Bu T.C. birden fazla personelde kayıtlı. Aktarımdan önce mükerrer kimlik kaydını düzeltin: '+row.personId);
   const p=matches[0];
   if(seen.has(p.uid))throw Error('Aynı çalışan dosyada birden fazla kez var.');seen.add(p.uid);
   if(organizationText(p.name)!==organizationText(row.systemName))throw Error('Sistemdeki isim dosyadan sonra değişmiş: '+p.id);
@@ -2810,8 +2812,13 @@ function organizationTransferPlans(input){
   return {uid:p.uid,id:p.id,name:p.name,before:{dept:p.dept,homeLine:p.homeLine||'',line:p.line||''},dept:row.dept,homeLine:row.homeLine,line:row.line,note,addNote:!!addNote,changed:p.dept!==row.dept||(p.homeLine||'')!==row.homeLine||(p.line||'')!==row.line||!!addNote};
  });
 }
+function organizationTransferResult(){
+ const result=db.lastOrganizationTransfer;
+ if(!result||!validCostMonth(result.month)||!validDate(String(result.at||'').slice(0,10))||![result.updated,result.notes,result.total,result.excluded].every(n=>Number.isSafeInteger(n)&&n>=0))return '';
+ return '<section class="notice" id="organization-transfer-last-result" role="status"><strong>Son organizasyon aktarımı kaydedildi</strong><p>'+result.updated+' personel güncellendi · '+result.notes+' yeni not eklendi · '+result.excluded+' aktarım dışı personel korundu · Toplam '+result.total+' personel.</p><p class="small muted">Kaynak: '+esc(costMonthLabel(result.month))+' · Kayıt: '+esc(new Date(result.at).toLocaleString('tr-TR',{timeZone:'Europe/Istanbul'}))+'</p>'+btn('Personel listesini kontrol et','go:people')+'</section>';
+}
 function organizationTransferPanel(){
- return '<section class="card"><h2>Onaylı Organizasyon Eşleştirmelerini Uygula</h2><p class="notice">Yalnızca onaylı dosyadaki mevcut personeller güncellenir. Sicil, T.C. ve sistem adı birlikte kontrol edilir. Yeni personel oluşturulmaz. Unvan, maaş, izin bakiyesi ve aylık maliyet yüzdeleri korunur. Hat değişikliği bugünden itibaren kaydedilir; Excel’deki ay geçmiş günlere atama veya maliyet yüzdesi oluşturmaz.</p><label>Onaylı aktarım dosyası<input type="file" id="organization-approved-file" accept=".json,application/json"></label><div id="organization-approved-preview" role="status"></div><form id="organization-approved-form"><label class="check"><input type="checkbox" name="ack" required>Onaylı eşleşmeleri ve değişecek alanları kontrol ettim.</label><p class="error" role="alert"></p><button type="submit" class="btn primary" disabled>Onaylı organizasyon bilgilerini uygula</button></form></section>';
+ return '<section class="card"><h2>Onaylı Organizasyon Eşleştirmelerini Uygula</h2>'+organizationTransferResult()+'<p class="notice">Yalnızca onaylı dosyadaki mevcut personeller güncellenir. Sicil, T.C. ve sistem adı birlikte kontrol edilir. Yeni personel oluşturulmaz. Unvan, maaş, izin bakiyesi ve aylık maliyet yüzdeleri korunur. Hat değişikliği bugünden itibaren kaydedilir; Excel’deki ay geçmiş günlere atama veya maliyet yüzdesi oluşturmaz.</p><label>Onaylı aktarım dosyası<input type="file" id="organization-approved-file" accept=".json,application/json"></label><div id="organization-approved-preview" role="status"></div><form id="organization-approved-form"><label class="check"><input type="checkbox" name="ack" required>Onaylı eşleşmeleri ve değişecek alanları kontrol ettim.</label><p class="error" role="alert"></p><button type="submit" class="btn primary" disabled>Onaylı organizasyon bilgilerini uygula</button></form></section>';
 }
 async function readOrganizationApprovedTransfer(file){
  const token=++organizationApprovedToken,root=document.getElementById('organization-approved-preview'),form=document.getElementById('organization-approved-form');
@@ -2823,7 +2830,7 @@ async function readOrganizationApprovedTransfer(file){
   if(token!==organizationApprovedToken||document.getElementById('organization-approved-preview')!==root)return;
   const plans=organizationTransferPlans(input),changed=plans.filter(p=>p.changed);
   organizationApprovedTransfer={input,plans,before:organizationTransferSource()};
-  root.innerHTML='<p><strong>'+plans.length+' personel doğrulandı · '+changed.length+' güncellenecek · '+plans.filter(p=>p.addNote).length+' yeni not</strong></p><p>Dosya dönemi: '+esc(costMonthLabel(input.month))+' · Geçerli atama tarihi: '+esc(fmt(TODAY))+'</p>'+table(['Personel / sicil','Departman','Ana hat','Çalıştığı hat','Eklenecek not'],plans.map(p=>tr([esc(p.name)+'<br>'+esc(p.id),esc(p.before.dept||'Belirtilmedi')+' → '+esc(p.dept),esc(p.before.homeLine||'Belirtilmedi')+' → '+esc(p.homeLine||'Hat gerekmiyor'),esc(p.before.line||'Belirtilmedi')+' → '+esc(p.line||'Hat gerekmiyor'),esc(p.note||'—')])));
+   root.innerHTML='<p><strong>'+plans.length+' personel doğrulandı · '+changed.length+' güncellenecek · '+plans.filter(p=>p.addNote).length+' yeni not</strong></p><p>Dosya dönemi: '+esc(costMonthLabel(input.month))+' · Geçerli atama tarihi: '+esc(fmt(TODAY))+'</p>'+(!changed.length?'<p class="notice">Bu dosyadaki organizasyon bilgileri ve notlar zaten güncel. Yeniden kayıt gerekmez.</p>':'')+'<details id="organization-transfer-details"><summary>'+plans.length+' personelin eski ve yeni bilgilerini incele</summary><div style="max-height:420px;overflow:auto;margin-top:12px">'+table(['Personel / sicil','Departman','Ana hat','Çalıştığı hat','Eklenecek not'],plans.map(p=>tr([esc(p.name)+'<br>'+esc(p.id),esc(p.before.dept||'Belirtilmedi')+' → '+esc(p.dept),esc(p.before.homeLine||'Belirtilmedi')+' → '+esc(p.homeLine||'Hat gerekmiyor'),esc(p.before.line||'Belirtilmedi')+' → '+esc(p.line||'Hat gerekmiyor'),esc(p.note||'—')])))+'</div></details>';
   form.querySelector('button').disabled=!changed.length;
  }catch(error){root.textContent=error.message}
 }
@@ -2831,6 +2838,7 @@ function commitOrganizationApprovedTransfer(form){
  const error=form.querySelector('.error');error.textContent='';
  try{
   assertPrimaryStorageCurrent();
+  if(document.body.classList.contains('login-required'))throw Error('Aktarım için yeniden giriş yapın.');
   const state=organizationApprovedTransfer;
   if(!state||!form.isConnected||!form.elements.ack.checked)throw Error('Dosyayı seçin ve önizlemeyi kontrol ettiğinizi onaylayın.');
   if(state.before!==organizationTransferSource())throw Error('Önizlemeden sonra personel veya organizasyon bilgileri değişti. Dosyayı yeniden seçin.');
@@ -2849,6 +2857,7 @@ function commitOrganizationApprovedTransfer(form){
    if(plan.addNote)next.personNotes.unshift({id:'N-'+crypto.randomUUID(),person:p.id,at,category:'Organizasyon şeması',content:plan.note,status:'Aktif'});
   }
   const message=changed.length+' personelin organizasyon bilgileri onaylı eşleştirmeyle güncellendi.';
+  next.lastOrganizationTransfer={month:state.input.month,at,updated:changed.length,notes:changed.filter(p=>p.addNote).length,total:next.people.length,excluded:next.people.length-plans.length};
   const after={...before,people:structuredClone(next.people),assignmentHistory:structuredClone(next.assignmentHistory),personNotes:structuredClone(next.personNotes),settings:structuredClone(next.settings)};
   const archive=next.changeArchive||{version:1,startedAt:at,baseline:before,events:[]};
   next.changeArchive={...archive,events:[...archive.events,{id:crypto.randomUUID(),at,message,changes:archiveDiff(archiveObserved||before,after)}]};
