@@ -1337,7 +1337,7 @@ function field(label,name,type='text',extra='',required=true){return `<label>${l
 function selectField(label,name,options,selected=''){return `<label>${label}<select name="${name}" required>${options.map(([value,text])=>`<option value="${esc(value)}" ${value===selected?'selected':''}>${esc(text)}</option>`).join('')}</select></label>`}
 function catalogSelect(label,name,items,selected='',required=true){if(['homeLine','line'].includes(name))required=false;return `<label>${label}<select name="${name}" ${required?'required':''}><option value="">${required?'Seçiniz':'Belirtilmedi'}</option>${items.map(value=>`<option value="${esc(value)}" ${value===selected?'selected':''}>${esc(value)}</option>`).join('')}</select></label>`}
 function costInputs(p){return costFields.map(([key,label])=>['bonus','benefits'].includes(key)?`<input type="hidden" name="${key}" value="${p?.costs?.[key]??0}">`:`<label>${label} (TL)<input type="number" name="${key}" min="0" max="100000000" step="0.01" ${key==='salary'?'':'required'} aria-describedby="new-cost-hint-${key}" placeholder="${key==='salary'?'Bankadan ödenen tutarı girin':'Gider yoksa 0'}" value="${p?.costs?Number(p.costs[key]||0):key==='salary'?'':0}"><span id="new-cost-hint-${key}" data-field-explanation="true" class="small muted" style="display:block;margin-top:5px">${esc(costInputHint(key))} ${key==='salary'?'Henüz bilinmiyorsa boş bırakın. Bilinen sıfır tutar için 0 girin.':'Gider yoksa 0 girin.'}</span></label>`).join('')+payrollInfoFields(p||{},'initial')+otherExpenseField(p)}
-function catalogPanel(){return organizationChartReviewPanel()+`<section class="card" style="margin-top:20px"><h2>Departman, Hat ve Unvan Yönetimi</h2><div class="grid">${['departments','lines','titles'].map(kind=>`<section><h2>${kind==='departments'?'Departmanlar':kind==='lines'?'Çalışma hatları / birimler':'Unvanlar'}</h2><div class="tags">${db.settings[kind].map((x,index)=>`<button type="button" class="btn" style="margin:3px" data-action="renamecatalog:${kind}:${index}">${esc(x)} · Düzenle</button>`).join(' ')}</div><form class="catalog-form" data-kind="${kind}" style="margin-top:16px"><div class="toolbar"><input name="name" required maxlength="80" aria-label="${kind==='departments'?'Yeni departman adı':kind==='lines'?'Yeni hat adı':'Yeni unvan adı'}" placeholder="${kind==='departments'?'Yeni departman adı':kind==='lines'?'Yeni hat adı':'Yeni unvan adı'}"><button class="btn primary" type="submit">Ekle</button></div></form></section>`).join('')}</div></section>`}
+function catalogPanel(){return organizationTransferPanel()+organizationChartReviewPanel()+`<section class="card" style="margin-top:20px"><h2>Departman, Hat ve Unvan Yönetimi</h2><div class="grid">${['departments','lines','titles'].map(kind=>`<section><h2>${kind==='departments'?'Departmanlar':kind==='lines'?'Çalışma hatları / birimler':'Unvanlar'}</h2><div class="tags">${db.settings[kind].map((x,index)=>`<button type="button" class="btn" style="margin:3px" data-action="renamecatalog:${kind}:${index}">${esc(x)} · Düzenle</button>`).join(' ')}</div><form class="catalog-form" data-kind="${kind}" style="margin-top:16px"><div class="toolbar"><input name="name" required maxlength="80" aria-label="${kind==='departments'?'Yeni departman adı':kind==='lines'?'Yeni hat adı':'Yeni unvan adı'}" placeholder="${kind==='departments'?'Yeni departman adı':kind==='lines'?'Yeni hat adı':'Yeni unvan adı'}"><button class="btn primary" type="submit">Ekle</button></div></form></section>`).join('')}</div></section>`}
 function addCatalog(form){const kind=form.dataset.kind;if(!['departments','lines','titles'].includes(kind))return;const name=String(new FormData(form).get('name')||'').trim();if(!name||name.length>80){toast('1–80 karakterlik bir ad girin.');return}if(db.settings[kind].some(x=>x.toLocaleLowerCase('tr')===name.toLocaleLowerCase('tr'))){toast('Bu tanım zaten mevcut.');return}db.settings[kind].push(name);save((kind==='departments'?'Departman':kind==='lines'?'Hat':'Unvan')+' eklendi: '+name)}
 function overtimeDurationShortcuts(){return '<div class="notice"><p class="small" style="margin-bottom:8px">Mesai süresini hızlı doldur · Seçim mevcut saat alanının yerine yazılır.</p><div class="actions">'+[[0.5,'30 dakika'],[1,'1 saat'],[2,'2 saat'],[3,'3 saat']].map(([hours,label])=>btn(label,'overtimeduration:'+hours)).join('')+'</div><p class="small muted" style="margin-top:8px">Süreyi elle değiştirebilirsiniz. Bu düğmeler kayıt yapmaz; günlük toplamı kontrol edip Kaydet kullanın.</p></div>'}
 function setOvertimeDuration(hours){if(![0.5,1,2,3].includes(Number(hours)))return;const form=dialog.querySelector?.('#overtime-edit-form')||dialog.querySelector?.('#record-form');if(!form||(form.id==='record-form'&&form.dataset.kind!=='overtime'))return;const input=form.querySelector('[name="hours"]');if(!input)return;input.value=String(hours);updateRecordRequiredSummary();if(form.id==='overtime-edit-form')updateOvertimeEditPreview();else updateNewOvertimePreview();input.focus?.()}
@@ -2792,6 +2792,74 @@ document.addEventListener('click',event=>{
  profile(employee.id);
  jumpProfileSection('notes');
 });
+let organizationApprovedTransfer=null,organizationApprovedToken=0;
+function organizationTransferSource(){return JSON.stringify({people:db.people,settings:db.settings,notes:db.personNotes,history:db.assignmentHistory})}
+function organizationTransferPlans(input){
+ if(input?.format!=='celmak-organization-approved-v1'||!validCostMonth(input.month)||!Array.isArray(input.rows)||!input.rows.length||input.rows.length>1000)throw Error('Onaylı organizasyon aktarım dosyası geçersiz.');
+ const seen=new Set();
+ return input.rows.map(row=>{
+  const matches=db.people.filter(p=>p.id===row.personId&&personnelExcelTc(p.nationalId)===row.nationalId);
+  if(matches.length!==1)throw Error('Sicil ve T.C. ile tek personel bulunamadı: '+String(row.personId||''));
+  const p=matches[0];
+  if(seen.has(p.uid))throw Error('Aynı çalışan dosyada birden fazla kez var.');seen.add(p.uid);
+  if(organizationText(p.name)!==organizationText(row.systemName))throw Error('Sistemdeki isim dosyadan sonra değişmiş: '+p.id);
+  if(p.status!=='Aktif')throw Error('Aktif olmayan personel için aktarım durduruldu: '+p.id);
+  if(!db.settings.departments.includes(row.dept)||typeof row.line!=='string'||row.line!==row.homeLine||row.line&&!db.settings.lines.includes(row.line))throw Error('Departman veya aynı başlangıç hatları uygun değil: '+p.id);
+  if(typeof row.note!=='string'||row.note.length>1000)throw Error('Organizasyon notu geçersiz: '+p.id);
+  const note=row.note.trim(),addNote=note&&!db.personNotes.some(n=>n.person===p.id&&n.status==='Aktif'&&n.category==='Organizasyon şeması'&&n.content===note);
+  return {uid:p.uid,id:p.id,name:p.name,before:{dept:p.dept,homeLine:p.homeLine||'',line:p.line||''},dept:row.dept,homeLine:row.homeLine,line:row.line,note,addNote:!!addNote,changed:p.dept!==row.dept||(p.homeLine||'')!==row.homeLine||(p.line||'')!==row.line||!!addNote};
+ });
+}
+function organizationTransferPanel(){
+ return '<section class="card"><h2>Onaylı Organizasyon Eşleştirmelerini Uygula</h2><p class="notice">Yalnızca onaylı dosyadaki mevcut personeller güncellenir. Sicil, T.C. ve sistem adı birlikte kontrol edilir. Yeni personel oluşturulmaz. Unvan, maaş, izin bakiyesi ve aylık maliyet yüzdeleri korunur. Hat değişikliği bugünden itibaren kaydedilir; Excel’deki ay geçmiş günlere atama veya maliyet yüzdesi oluşturmaz.</p><label>Onaylı aktarım dosyası<input type="file" id="organization-approved-file" accept=".json,application/json"></label><div id="organization-approved-preview" role="status"></div><form id="organization-approved-form"><label class="check"><input type="checkbox" name="ack" required>Onaylı eşleşmeleri ve değişecek alanları kontrol ettim.</label><p class="error" role="alert"></p><button type="submit" class="btn primary" disabled>Onaylı organizasyon bilgilerini uygula</button></form></section>';
+}
+async function readOrganizationApprovedTransfer(file){
+ const token=++organizationApprovedToken,root=document.getElementById('organization-approved-preview'),form=document.getElementById('organization-approved-form');
+ if(!root||!form)return;organizationApprovedTransfer=null;form.elements.ack.checked=false;form.querySelector('button').disabled=true;form.querySelector('.error').textContent='';root.textContent='';
+ if(!file)return;
+ try{
+  if(file.size>2*1024*1024)throw Error('Aktarım dosyası en fazla 2 MB olabilir.');
+  const input=JSON.parse(await file.text());
+  if(token!==organizationApprovedToken||document.getElementById('organization-approved-preview')!==root)return;
+  const plans=organizationTransferPlans(input),changed=plans.filter(p=>p.changed);
+  organizationApprovedTransfer={input,plans,before:organizationTransferSource()};
+  root.innerHTML='<p><strong>'+plans.length+' personel doğrulandı · '+changed.length+' güncellenecek · '+plans.filter(p=>p.addNote).length+' yeni not</strong></p><p>Dosya dönemi: '+esc(costMonthLabel(input.month))+' · Geçerli atama tarihi: '+esc(fmt(TODAY))+'</p>'+table(['Personel / sicil','Departman','Ana hat','Çalıştığı hat','Eklenecek not'],plans.map(p=>tr([esc(p.name)+'<br>'+esc(p.id),esc(p.before.dept||'Belirtilmedi')+' → '+esc(p.dept),esc(p.before.homeLine||'Belirtilmedi')+' → '+esc(p.homeLine||'Hat gerekmiyor'),esc(p.before.line||'Belirtilmedi')+' → '+esc(p.line||'Hat gerekmiyor'),esc(p.note||'—')])));
+  form.querySelector('button').disabled=!changed.length;
+ }catch(error){root.textContent=error.message}
+}
+function commitOrganizationApprovedTransfer(form){
+ const error=form.querySelector('.error');error.textContent='';
+ try{
+  assertPrimaryStorageCurrent();
+  const state=organizationApprovedTransfer;
+  if(!state||!form.isConnected||!form.elements.ack.checked)throw Error('Dosyayı seçin ve önizlemeyi kontrol ettiğinizi onaylayın.');
+  if(state.before!==organizationTransferSource())throw Error('Önizlemeden sonra personel veya organizasyon bilgileri değişti. Dosyayı yeniden seçin.');
+  const plans=organizationTransferPlans(state.input),changed=plans.filter(p=>p.changed);
+  if(!changed.length)throw Error('Uygulanacak değişiklik yok.');
+  const next=structuredClone(db),at=new Date().toISOString(),before=archiveSnapshot();
+  next.settings.lineBaselines??={};
+  for(const plan of changed){
+   const p=next.people.find(row=>row.uid===plan.uid);
+   const assignmentChanged=p.dept!==plan.dept||(p.homeLine||'')!==plan.homeLine||(p.line||'')!==plan.line;
+   if(assignmentChanged){
+    next.settings.lineBaselines[p.uid]??={date:TODAY,line:p.line||''};
+    next.assignmentHistory.unshift({person:p.id,at,effectiveDate:TODAY,before:{dept:p.dept,role:p.role,line:p.line||'',homeLine:p.homeLine||'',manager:p.manager},after:{dept:plan.dept,role:p.role,line:plan.line,homeLine:plan.homeLine,manager:p.manager},reason:costMonthLabel(state.input.month)+' organizasyon şeması · Kullanıcı onaylı eşleştirme'});
+    Object.assign(p,{dept:plan.dept,homeLine:plan.homeLine,line:plan.line});
+   }
+   if(plan.addNote)next.personNotes.unshift({id:'N-'+crypto.randomUUID(),person:p.id,at,category:'Organizasyon şeması',content:plan.note,status:'Aktif'});
+  }
+  const message=changed.length+' personelin organizasyon bilgileri onaylı eşleştirmeyle güncellendi.';
+  const after={...before,people:structuredClone(next.people),assignmentHistory:structuredClone(next.assignmentHistory),personNotes:structuredClone(next.personNotes),settings:structuredClone(next.settings)};
+  const archive=next.changeArchive||{version:1,startedAt:at,baseline:before,events:[]};
+  next.changeArchive={...archive,events:[...archive.events,{id:crypto.randomUUID(),at,message,changes:archiveDiff(archiveObserved||before,after)}]};
+  next.audit.unshift({at,message});validateFactoryExtras(next);writeAppStorage(KEY,JSON.stringify(next));
+  db=next;archiveOwner=next;archiveObserved=after;storageState={ok:true,at};organizationApprovedTransfer=null;
+  render();toast(message);
+ }catch(problem){error.textContent=problem.message}
+}
+document.addEventListener('change',event=>{if(event.target.id==='organization-approved-file')readOrganizationApprovedTransfer(event.target.files?.[0])});
+document.addEventListener('submit',event=>{if(event.target.id==='organization-approved-form'){event.preventDefault();commitOrganizationApprovedTransfer(event.target)}});
+
 function ensureDirectSupportDepartments(){
  if(db.settings.directSupportDepartmentsVersion===1)return false;
  const departments=[...db.settings.departments];
