@@ -2803,6 +2803,20 @@ document.addEventListener('click',event=>{
  profile(employee.id);
  jumpProfileSection('notes');
 });
+function ensureDirectSupportDepartments(){
+ if(db.settings.directSupportDepartmentsVersion===1)return false;
+ const departments=[...db.settings.departments];
+ const normalize=value=>String(value).trim().toLocaleLowerCase('tr');
+ const existing=new Set(departments.map(normalize));
+ for(const name of ['Yemekhane','Temizlik','Sekreterya','Servis / Ulaşım','Güvenlik']){
+  if(!existing.has(normalize(name))){departments.push(name);existing.add(normalize(name))}
+ }
+ db.settings.departments=departments;
+ db.settings.directSupportDepartmentsVersion=1;
+ try{writeAppStorage(KEY,JSON.stringify(db))}catch{storageState={ok:false,at:null}}
+ return true;
+}
+if(ensureDirectSupportDepartments())render();
 initializeLogin();
 initializeMetricNavigation();
 initializeOperationalDayWatch();
