@@ -2933,6 +2933,15 @@ function ensureOrganizationChartDefinitions(){
  try{writeAppStorage(KEY,JSON.stringify(db))}catch{storageState={ok:false,at:null}}
  return true;
 }
+function ensureOrganizationChartTitles(){
+ if(db.settings.organizationChartTitlesVersion===1)return false;
+ const titles=['Fabrika Ustası','CNC Torna Operatörü','Freze Operatörü','Üniversal Tezgâh Operatörü','Toz Boya Operatörü','Yaş Boya Operatörü','Şoför','Sekreter','Bekçi'];
+ const existing=new Set(db.settings.titles.map(organizationText));
+ for(const title of titles)if(!existing.has(organizationText(title))){db.settings.titles.push(title);existing.add(organizationText(title))}
+ db.settings.organizationChartTitlesVersion=1;
+ try{writeAppStorage(KEY,JSON.stringify(db))}catch{storageState={ok:false,at:null}}
+ return true;
+}
 function organizationChartNotePanel(p,editable){
  const notes=db.personNotes.filter(note=>note.person===p.id&&note.category==='Organizasyon şeması'&&note.status==='Aktif');
  if(!notes.length)return editable?'<div class="actions" style="margin-top:8px">'+btn('Organizasyon notu ekle','contextnoteadd:organization:'+p.id)+'</div>':'';
@@ -2979,7 +2988,8 @@ document.addEventListener('change',event=>{
 });
 
 const supportDepartmentsChanged=ensureDirectSupportDepartments();
-if(ensureOrganizationChartDefinitions()||supportDepartmentsChanged)render();
+const organizationTitlesChanged=ensureOrganizationChartTitles();
+if(ensureOrganizationChartDefinitions()||organizationTitlesChanged||supportDepartmentsChanged)render();
 initializeLogin();
 initializeMetricNavigation();
 initializeOperationalDayWatch();
