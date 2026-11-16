@@ -1337,7 +1337,7 @@ function field(label,name,type='text',extra='',required=true){return `<label>${l
 function selectField(label,name,options,selected=''){return `<label>${label}<select name="${name}" required>${options.map(([value,text])=>`<option value="${esc(value)}" ${value===selected?'selected':''}>${esc(text)}</option>`).join('')}</select></label>`}
 function catalogSelect(label,name,items,selected='',required=true){if(['homeLine','line'].includes(name))required=false;return `<label>${label}<select name="${name}" ${required?'required':''}><option value="">${required?'Seçiniz':'Belirtilmedi'}</option>${items.map(value=>`<option value="${esc(value)}" ${value===selected?'selected':''}>${esc(value)}</option>`).join('')}</select></label>`}
 function costInputs(p){return costFields.map(([key,label])=>['bonus','benefits'].includes(key)?`<input type="hidden" name="${key}" value="${p?.costs?.[key]??0}">`:`<label>${label} (TL)<input type="number" name="${key}" min="0" max="100000000" step="0.01" ${key==='salary'?'':'required'} aria-describedby="new-cost-hint-${key}" placeholder="${key==='salary'?'Bankadan ödenen tutarı girin':'Gider yoksa 0'}" value="${p?.costs?Number(p.costs[key]||0):key==='salary'?'':0}"><span id="new-cost-hint-${key}" data-field-explanation="true" class="small muted" style="display:block;margin-top:5px">${esc(costInputHint(key))} ${key==='salary'?'Henüz bilinmiyorsa boş bırakın. Bilinen sıfır tutar için 0 girin.':'Gider yoksa 0 girin.'}</span></label>`).join('')+payrollInfoFields(p||{},'initial')+otherExpenseField(p)}
-function catalogPanel(){return `<section class="card" style="margin-top:20px"><h2>Departman, Hat ve Unvan Yönetimi</h2><div class="grid">${['departments','lines','titles'].map(kind=>`<section><h2>${kind==='departments'?'Departmanlar':kind==='lines'?'Çalışma hatları / birimler':'Unvanlar'}</h2><div class="tags">${db.settings[kind].map((x,index)=>`<button type="button" class="btn" style="margin:3px" data-action="renamecatalog:${kind}:${index}">${esc(x)} · Düzenle</button>`).join(' ')}</div><form class="catalog-form" data-kind="${kind}" style="margin-top:16px"><div class="toolbar"><input name="name" required maxlength="80" aria-label="${kind==='departments'?'Yeni departman adı':kind==='lines'?'Yeni hat adı':'Yeni unvan adı'}" placeholder="${kind==='departments'?'Yeni departman adı':kind==='lines'?'Yeni hat adı':'Yeni unvan adı'}"><button class="btn primary" type="submit">Ekle</button></div></form></section>`).join('')}</div></section>`}
+function catalogPanel(){return organizationChartReviewPanel()+`<section class="card" style="margin-top:20px"><h2>Departman, Hat ve Unvan Yönetimi</h2><div class="grid">${['departments','lines','titles'].map(kind=>`<section><h2>${kind==='departments'?'Departmanlar':kind==='lines'?'Çalışma hatları / birimler':'Unvanlar'}</h2><div class="tags">${db.settings[kind].map((x,index)=>`<button type="button" class="btn" style="margin:3px" data-action="renamecatalog:${kind}:${index}">${esc(x)} · Düzenle</button>`).join(' ')}</div><form class="catalog-form" data-kind="${kind}" style="margin-top:16px"><div class="toolbar"><input name="name" required maxlength="80" aria-label="${kind==='departments'?'Yeni departman adı':kind==='lines'?'Yeni hat adı':'Yeni unvan adı'}" placeholder="${kind==='departments'?'Yeni departman adı':kind==='lines'?'Yeni hat adı':'Yeni unvan adı'}"><button class="btn primary" type="submit">Ekle</button></div></form></section>`).join('')}</div></section>`}
 function addCatalog(form){const kind=form.dataset.kind;if(!['departments','lines','titles'].includes(kind))return;const name=String(new FormData(form).get('name')||'').trim();if(!name||name.length>80){toast('1–80 karakterlik bir ad girin.');return}if(db.settings[kind].some(x=>x.toLocaleLowerCase('tr')===name.toLocaleLowerCase('tr'))){toast('Bu tanım zaten mevcut.');return}db.settings[kind].push(name);save((kind==='departments'?'Departman':kind==='lines'?'Hat':'Unvan')+' eklendi: '+name)}
 function overtimeDurationShortcuts(){return '<div class="notice"><p class="small" style="margin-bottom:8px">Mesai süresini hızlı doldur · Seçim mevcut saat alanının yerine yazılır.</p><div class="actions">'+[[0.5,'30 dakika'],[1,'1 saat'],[2,'2 saat'],[3,'3 saat']].map(([hours,label])=>btn(label,'overtimeduration:'+hours)).join('')+'</div><p class="small muted" style="margin-top:8px">Süreyi elle değiştirebilirsiniz. Bu düğmeler kayıt yapmaz; günlük toplamı kontrol edip Kaydet kullanın.</p></div>'}
 function setOvertimeDuration(hours){if(![0.5,1,2,3].includes(Number(hours)))return;const form=dialog.querySelector?.('#overtime-edit-form')||dialog.querySelector?.('#record-form');if(!form||(form.id==='record-form'&&form.dataset.kind!=='overtime'))return;const input=form.querySelector('[name="hours"]');if(!input)return;input.value=String(hours);updateRecordRequiredSummary();if(form.id==='overtime-edit-form')updateOvertimeEditPreview();else updateNewOvertimePreview();input.focus?.()}
@@ -1345,7 +1345,7 @@ function overtimeDayRecords(personId,date,excludeId=''){return db.overtime.filte
 function overtimeDayDetails(rows){if(!rows.length)return '<p class="small muted">Bu gün için başka mesai kaydı yok.</p>';return '<details style="margin-top:10px"><summary>Aynı gündeki mevcut kayıtlar · '+rows.length+'</summary>'+rows.map(x=>'<p style="margin:8px 0"><strong>'+esc(x.hours)+' saat</strong> · '+esc(x.note||'Açıklama yok')+'<br><span class="small muted">Kayıt no: '+esc(x.id)+'</span></p>').join('')+'</details>'}
 function updateNewOvertimePreview(){const form=document.getElementById('record-form'),target=document.getElementById('new-overtime-preview');if(!form||form.dataset.kind!=='overtime'||!target)return;const data=Object.fromEntries(new FormData(form)),hours=Number(data.hours);if(!person(data.person)||!validDate(data.date)){target.textContent='Günlük toplamı görmek için çalışan ve tarih seçin.';return}const rows=overtimeDayRecords(data.person,data.date),current=rows.reduce((n,x)=>n+Number(x.hours),0),preview=overtimeEditPreviewData({id:'',person:data.person,hours:0},data.date,hours);target.innerHTML='<strong>'+fmt(data.date)+' · Günlük fazla mesai</strong><div class="detail" style="margin:12px 0"><p><span>Önceden kaydedilen</span>'+current+' saat</p><p><span>Bu formda eklenen</span>'+(preview.total===undefined?'Geçerli süre girin':hours+' saat')+'</p><p><span>Kaydettikten sonraki toplam</span>'+(preview.total===undefined?'Henüz hesaplanamıyor':preview.total+' saat')+'</p></div>'+(preview.error?'<p class="error" role="alert">'+esc(preview.error)+'</p>':'')+overtimeDayDetails(rows)+'<p class="small muted" style="margin-top:10px">Bu toplam yalnızca fazla mesai saatidir; normal çalışma saati dahil değildir. Prototipte günlük mesai giriş sınırı 12 saattir. Mesai doğrudan kaydedilir.</p>'}
 
-function personnelLineLabels(p,editable=false){return '<div class="personnel-line-labels"><div><span class="small muted">Ana hat · Asıl bağlı olduğu hat</span><br><strong>'+esc(p.homeLine||'Belirtilmedi')+'</strong>'+(editable?'<br>'+btn('Ana hattı değiştir','editpersonsection:'+p.id+':homeline'):'')+'</div><div><span class="small muted">Çalıştığı hat · Güncel görev yeri</span><br><strong>'+esc(p.line||'Belirtilmedi')+'</strong>'+(p.homeLine&&p.line&&p.homeLine!==p.line?'<span class="badge">Geçici / farklı hatta görevli</span>':'')+(editable?'<br>'+btn('Çalıştığı hattı değiştir','assignmentperson:'+p.id):'')+'</div></div>'}
+function personnelLineLabels(p,editable=false){return '<div class="personnel-line-labels"><div><span class="small muted">Ana hat · Asıl bağlı olduğu hat</span><br><strong>'+esc(p.homeLine||'Belirtilmedi')+'</strong>'+(editable?'<br>'+btn('Ana hattı değiştir','editpersonsection:'+p.id+':homeline'):'')+'</div><div><span class="small muted">Çalıştığı hat · Güncel görev yeri</span><br><strong>'+esc(p.line||'Belirtilmedi')+'</strong>'+(p.homeLine&&p.line&&p.homeLine!==p.line?'<span class="badge">Geçici / farklı hatta görevli</span>':'')+(editable?'<br>'+btn('Çalıştığı hattı değiştir','assignmentperson:'+p.id):'')+'</div></div>'+organizationChartNotePanel(p,editable)}
 function personnelOptionLabel(p){return [p.name,p.id,p.dept||'Departman belirtilmedi','Ana hat: '+(p.homeLine||'Belirtilmedi'),'Çalıştığı hat: '+(p.line||'Belirtilmedi')].join(' · ')}
 function recordPersonContext(p){if(!p)return '<p class="muted">Kayıt için personel seçin.</p>';return '<strong>İşlem yapılan personel: '+esc(p.name)+'</strong><p class="small" style="margin-top:6px">Sicil: '+esc(p.id)+' · Departman: '+esc(p.dept||'Belirtilmedi')+'<br>Unvan: '+esc(p.role||'Belirtilmedi')+' · Hat: '+esc(p.line||'Belirtilmedi')+'</p><p class="small muted" style="margin-top:6px">Formdaki kayıt bu çalışanın dosyasına eklenecek.</p>'}
 function personActiveAssetPreview(personId){if(!personId)return '<p class="muted">Mevcut zimmetlerini görmek için önce personel seçin.</p>';const rows=db.assets.filter(x=>x.person===personId&&x.status==='Teslim edildi');return '<strong>Seçilen personelin mevcut zimmetleri · '+rows.length+' ekipman</strong>'+(rows.length?'<p class="small muted" style="margin-top:6px">Yeni teslimden önce mevcut ekipmanları kontrol edin.</p>'+rows.slice(0,5).map(x=>'<p style="margin-top:8px">'+esc(x.title)+' · '+esc(x.serial||'Seri numarası yok')+'<br><span class="small muted">Teslim: '+fmt(x.date)+'</span></p>').join('')+(rows.length>5?'<p class="small muted" style="margin-top:8px">İlk 5 ekipman gösteriliyor; tümü personel dosyasında ve Zimmetler bölümünde bulunur.</p>':''):'<p class="small muted" style="margin-top:6px">Bu çalışanda aktif zimmet bulunmuyor.</p>')}
@@ -1971,9 +1971,9 @@ function returnSmallRecordEdit(form){if(form?.dataset?.returnCompleteness){dialo
 function cancelSmallRecordEdit(){const form=document.getElementById('small-record-edit-form');if(!form)return;if(newRecordDraftHasChanges(form)&&!confirm('Kaydedilmemiş değişiklikleri silip geri dönmek istiyor musunuz?'))return;returnSmallRecordEdit(form)}
 function saveSmallRecordEdit(form){const target=smallRecordTarget(form.dataset.kind,form.dataset.token),error=document.getElementById('small-record-edit-error');if(!target||JSON.stringify(target.record)!==form.dataset.before){error.textContent='Kayıt bu sırada değişmiş veya bulunamıyor. Formu kapatıp güncel kaydı yeniden açın.';return}const data=Object.fromEntries(new FormData(form)),kind=form.dataset.kind,reason=String(data.reason||'').trim();if(!reason||reason.length>200){error.textContent='Düzeltme nedenini 1–200 karakterle yazın.';return}let next;if(kind==='assetreturn'){const problem=assetReturnProblem(target.record,data);if(problem){error.textContent=problem;return}next={returnDate:data.returnDate,returnCondition:data.returnCondition,returnNote:String(data.returnNote||'').trim()}}else if(kind==='note'){const content=String(data.content||'').trim();if(!content||content.length>1000||!personNoteCategories().includes(data.category)){error.textContent='Geçerli kategori ve 1–1000 karakterlik not girin.';return}next={category:data.category,content}}else{const title=String(data.title||'').trim();if(!title||title.length>100){error.textContent='1–100 karakterlik açıklama / adım adı girin.';return}if(kind==='nonworking'){if(!validDate(data.date)||db.nonWorkingDays.some(x=>x!==target.record&&x.date===data.date)){error.textContent='Geçerli ve listede tekrar etmeyen bir gün seçin.';return}next={date:data.date,title}}else{if(target.p[kind].some(x=>x!==target.record&&personnelSearchText(x.title)===personnelSearchText(title))){error.textContent='Bu adım adı listede zaten var.';return}next={title}}}if(Object.keys(next).every(key=>target.record[key]===next[key])){error.textContent='Kayıtta değişiklik yok.';return}Object.assign(target.record,next);save((target.p?target.p.name+' · ':'')+({assetreturn:'Zimmet iade bilgisi',note:'Personel notu',nonworking:'Çalışılmayan gün',onboarding:'İşe giriş adımı',offboarding:'İşten çıkış adımı'}[kind])+' düzeltildi · Gerekçe: '+reason);if(kind==='nonworking'){dialog.close();go('workingcalendar')}else returnSmallRecordEdit(form)}
 let personNotesFilter={personId:null,category:'',query:''};
-function personNoteCategories(){return ['Görüşme','Görev takibi','Bilgilendirme','Maaş bilgisi','Fiilî işe başlangıç',contextNoteCategories.attendance,contextNoteCategories.leave,contextNoteCategories.overtime,contextNoteCategories.contact,contextNoteCategories.training,contextNoteCategories.asset,'Diğer']}
-const contextNoteCategories={start:'Fiilî işe başlangıç',salary:'Maaş bilgisi',assignment:'Görev takibi',attendance:'Puantaj',leave:'İzin ve rapor',overtime:'Fazla mesai',contact:'İletişim',training:'Eğitim ve belge',asset:'Zimmet'};
-const contextNoteLabels={start:'İşe giriş',salary:'Maaş',assignment:'Görev',attendance:'Puantaj',leave:'İzin / rapor',overtime:'Mesai',contact:'İletişim',training:'Eğitim / belge',asset:'Zimmet'};
+function personNoteCategories(){return ['Görüşme','Görev takibi','Bilgilendirme','Maaş bilgisi','Fiilî işe başlangıç',contextNoteCategories.attendance,contextNoteCategories.leave,contextNoteCategories.overtime,contextNoteCategories.contact,contextNoteCategories.training,contextNoteCategories.asset,'Organizasyon şeması','Diğer']}
+const contextNoteCategories={start:'Fiilî işe başlangıç',salary:'Maaş bilgisi',assignment:'Görev takibi',organization:'Organizasyon şeması',attendance:'Puantaj',leave:'İzin ve rapor',overtime:'Fazla mesai',contact:'İletişim',training:'Eğitim ve belge',asset:'Zimmet'};
+const contextNoteLabels={start:'İşe giriş',salary:'Maaş',assignment:'Görev',organization:'Organizasyon',attendance:'Puantaj',leave:'İzin / rapor',overtime:'Mesai',contact:'İletişim',training:'Eğitim / belge',asset:'Zimmet'};
 function contextNoteActions(p,kind){
  if(!p)return '';
  return '<div class="context-note-link">'+contextNotePreview(p,kind)+btn(contextNoteLabels[kind]+' notu ekle','contextnoteadd:'+kind+':'+p.id)+'</div>';
@@ -2805,7 +2805,113 @@ function ensureDirectSupportDepartments(){
  try{writeAppStorage(KEY,JSON.stringify(db))}catch{storageState={ok:false,at:null}}
  return true;
 }
-if(ensureDirectSupportDepartments())render();
+// Organizational definitions contain no employee names. Workbook contents stay in the browser.
+const organizationProductionGroups=['Talaşlı İmalat','Çift Sıralı Sıra Bağımsız','Tamburlu Ç. B.','Römork','Üç Sıralı Sıra Bağımsız','Mısır Silaj - Ot Silaj','Yem Karma ve Katı Gübre','Diskli','Şanzıman','Şanzımanlı Ot Toplama','Preshane','Boyahane','Kültüvatör - Ot Tırmığı','Montaj','Testere','Matkap','Abkant-Giyotin','Sac Kesim','Kalıp/Torna','Elektrik','ZAGA'];
+const organizationDepartmentGroups={'Yemekhane':'Yemekhane','Temizlik':'Temizlik','Mühendis / Tekniker':'Mühendis / Tekniker','Dış Ticaret':'Dış Ticaret','Muhasebe / Finans':'Muhasebe ve Finans','Servis/Şoför':'Servis / Ulaşım','Sekreter':'Sekreterya','Yedek Parça':'Yedek Parça','Satınalma / Depo':'Satın Alma ve Depo','Pazarlama':'Pazarlama','Reklam-Sosyal Medya':'Reklam / Sosyal Medya','Bilgi İşlem':'Bilgi İşlem'};
+function organizationText(value){return String(value??'').trim().toLocaleLowerCase('tr').replace(/\s+/g,' ').replace(/\s*([/\-])\s*/g,'$1')}
+function organizationGroupDefinition(value){
+ const key=organizationText(value);
+ const line=organizationProductionGroups.find(x=>organizationText(x)===key||(x==='Üç Sıralı Sıra Bağımsız'&&key==='3 sıralı sıra bağımsız'));
+ if(line)return {dept:'Üretim',homeLine:line,line};
+ const department=Object.entries(organizationDepartmentGroups).find(([label])=>organizationText(label)===key);
+ return department?{dept:department[1],homeLine:'',line:''}:null;
+}
+function organizationChartPerson(value){
+ const raw=String(value??'').trim(),notes=[];
+ const name=raw.replace(/\(([^()]*)\)/g,(_,note)=>{if(note.trim())notes.push(note.trim());return ' '}).replace(/\s+/g,' ').trim();
+ return {name,note:notes.join(' · '),sourceName:raw};
+}
+function parseOrganizationChart(rows){
+ if(!Array.isArray(rows)||rows.length>500)throw Error('Organizasyon sayfası en fazla 500 satır olmalıdır.');
+ const result=[],warnings=[];
+ for(const column of [1,4,7,10,13]){
+  let group=null;
+  for(let r=2;r<rows.length;r++){
+   if(organizationText(rows[r]?.[1])==='toplam')break;
+   const raw=String(rows[r]?.[column]??'').trim();if(!raw)continue;
+   const definition=organizationGroupDefinition(raw);
+   if(definition){group={...definition,sourceGroup:raw};continue}
+   if(/^bekçi\s*:/i.test(raw)){
+    const employee=organizationChartPerson(raw.replace(/^bekçi\s*:/i,''));
+    if(employee.name)result.push({...employee,dept:'Güvenlik',homeLine:'',line:'',sourceGroup:'Bekçi',cell:String.fromCharCode(65+column)+(r+1)});
+    continue;
+   }
+   if(organizationText(raw)==='toplam'){group=null;continue}
+   const sequence=rows[r]?.[column-1];
+   if(sequence===undefined||String(sequence).trim()===''){
+    group=null;warnings.push(String.fromCharCode(65+column)+(r+1)+': Tanınmayan başlık: '+raw);continue;
+   }
+   if(!Number.isFinite(Number(sequence))||Number(sequence)<1)continue;
+   if(!group){warnings.push(String.fromCharCode(65+column)+(r+1)+': Birim başlığı tanınmadığı için çalışan aktarılmadı.');continue}
+   const employee=organizationChartPerson(raw);
+   if(!employee.name||employee.name.length>80||employee.note.length>1000)throw Error('Ad veya not uzunluğu uygun değil: '+String.fromCharCode(65+column)+(r+1));
+   result.push({...employee,...group,cell:String.fromCharCode(65+column)+(r+1)});
+  }
+ }
+ if(!result.length)throw Error('Bu sayfada desteklenen organizasyon düzeninde çalışan bulunamadı.');
+ const totalRow=rows.find(row=>organizationText(row?.[1])==='toplam');
+ const reportedTotal=Number(totalRow?.[4]);
+ if(totalRow&&String(totalRow[4]??'').trim()&&Number.isFinite(reportedTotal)&&reportedTotal!==result.length)warnings.push('Excel toplamı '+reportedTotal+' kişi; isim satırlarından '+result.length+' kişi okundu. Eşleştirmeden önce farkı kontrol edin.');
+ return {rows:result,warnings};
+}
+function ensureOrganizationChartDefinitions(){
+ if(db.settings.organizationChartDefinitionsVersion===1)return false;
+ const departments=['Üretim',...Object.values(organizationDepartmentGroups),'Güvenlik'];
+ for(const [key,items] of [['departments',departments],['lines',organizationProductionGroups]]){
+  const known=new Set(db.settings[key].map(organizationText));
+  for(const name of items)if(!known.has(organizationText(name))){db.settings[key].push(name);known.add(organizationText(name))}
+ }
+ db.settings.organizationChartDefinitionsVersion=1;
+ try{writeAppStorage(KEY,JSON.stringify(db))}catch{storageState={ok:false,at:null}}
+ return true;
+}
+function organizationChartNotePanel(p,editable){
+ const notes=db.personNotes.filter(note=>note.person===p.id&&note.category==='Organizasyon şeması'&&note.status==='Aktif');
+ if(!notes.length)return editable?'<div class="actions" style="margin-top:8px">'+btn('Organizasyon notu ekle','contextnoteadd:organization:'+p.id)+'</div>':'';
+ return '<section class="notice" style="margin-top:10px"><strong>Organizasyon / görev açıklaması</strong>'+
+  (notes.length?notes.map(note=>'<div style="margin-top:8px"><p style="white-space:pre-wrap;overflow-wrap:anywhere">'+esc(note.content)+'</p>'+(editable?'<div class="actions">'+smallRecordEditButton('note',{id:note.id},'Notu düzenle')+btn('Notu sil','cancelnote:'+note.id)+'</div>':'')+'</div>').join(''):'<p class="small muted">Not eklenmemiş.</p>')+
+  (editable?btn('Organizasyon notu ekle','contextnoteadd:organization:'+p.id):'')+'</section>';
+}
+function organizationChartReviewPanel(){
+ return '<section class="card" style="margin-top:20px"><h2>Organizasyon Şeması Excel’ini İncele</h2><p>Şablondaki Mühendis / Tekniker grubu aynen korunur. Üretim grubu ilk aktarımda hem ana hat hem çalıştığı hat olur. Parantez içi bilgiler, isimden ayrı düzenlenebilir organizasyon notu olarak hazırlanır.</p><p class="notice">Bu adım yalnızca önizlemedir. Personel eşleştirme veya kayıt değişikliği yapmaz. Ay sekmesi günün kesin geçiş tarihini ya da aylık maliyet yüzdesini göstermez.</p><label>Organizasyon dosyası<input type="file" id="organization-review-file" accept=".xlsx,.xls"></label><label>İncelenecek ay / sayfa<select id="organization-review-sheet" disabled><option>Önce dosya seçin</option></select></label><div id="organization-review-result" role="status" style="margin-top:16px"></div></section>';
+}
+let organizationReviewBook=null,organizationReviewToken=0;
+function renderOrganizationChartReview(){
+ const root=document.getElementById('organization-review-result'),select=document.getElementById('organization-review-sheet');
+ if(!root||!select||!organizationReviewBook)return;
+ try{
+  const sheet=organizationReviewBook.Sheets[select.value];
+  const rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',blankrows:true});
+  const preview=parseOrganizationChart(rows);
+  root.innerHTML='<p><strong>'+preview.rows.length+' kişi · '+esc(select.value)+'</strong></p>'+
+   '<p class="small muted">Önizleme ilk 150 kişiyi gösterir. Departman ve hatlar öneridir; henüz hiçbir personele uygulanmadı. Unvanlar mevcut haliyle korunacak.</p>'+
+   (preview.warnings.length?'<p class="error">'+preview.warnings.map(esc).join('<br>')+'</p>':'')+
+   table(['Hücre','Excel’deki kişi','Departman','Ana hat','Çalıştığı hat','Not'],preview.rows.slice(0,150).map(row=>tr([esc(row.cell),esc(row.name),esc(row.dept),esc(row.homeLine||'Hat gerekmiyor'),esc(row.line||'Hat gerekmiyor'),esc(row.note||'—')])));
+ }catch(error){root.textContent=error.message}
+}
+async function readOrganizationChartReview(file){
+ const token=++organizationReviewToken,root=document.getElementById('organization-review-result'),select=document.getElementById('organization-review-sheet');
+ if(!root||!select)return;
+ organizationReviewBook=null;select.disabled=true;select.innerHTML='<option>Önce dosya seçin</option>';root.textContent='';
+ if(!file)return;
+ try{
+  if(!/\.(xlsx|xls)$/i.test(file.name)||file.size>10*1024*1024)throw Error('En fazla 10 MB boyutunda XLSX veya XLS dosyası seçin.');
+  if(typeof XLSX==='undefined')throw Error('Excel bileşeni yüklenemedi. Sayfayı yenileyin.');
+  const book=XLSX.read(await file.arrayBuffer(),{type:'array',sheetRows:501});
+  if(token!==organizationReviewToken||document.getElementById('organization-review-result')!==root)return;
+  if(!book.SheetNames.length)throw Error('Dosyada çalışma sayfası yok.');
+  organizationReviewBook=book;
+  select.innerHTML=book.SheetNames.map(name=>'<option value="'+esc(name)+'">'+esc(name)+'</option>').join('');
+  select.value=book.SheetNames.at(-1);select.disabled=false;renderOrganizationChartReview();
+ }catch(error){if(token===organizationReviewToken&&document.getElementById('organization-review-result')===root)root.textContent=error.message}
+}
+document.addEventListener('change',event=>{
+ if(event.target.id==='organization-review-file')readOrganizationChartReview(event.target.files?.[0]);
+ if(event.target.id==='organization-review-sheet')renderOrganizationChartReview();
+});
+
+const supportDepartmentsChanged=ensureDirectSupportDepartments();
+if(ensureOrganizationChartDefinitions()||supportDepartmentsChanged)render();
 initializeLogin();
 initializeMetricNavigation();
 initializeOperationalDayWatch();
