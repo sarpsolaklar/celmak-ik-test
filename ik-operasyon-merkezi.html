@@ -471,6 +471,7 @@ function updateFinancialPrivacyButton(){
  if(note)note.hidden=!financialPrivacy;
 }
 financialPrivacyButton?.addEventListener?.('click',()=>{
+ if(currentEditDraftHasChanges()&&!confirm('Tutar görünümünü değiştirmek için kaydedilmemiş girişleri bırakmak istiyor musunuz?'))return;
  financialPrivacy=!financialPrivacy;
  try{sessionStorage.setItem('celmak-financial-privacy',financialPrivacy?'1':'0')}catch{}
  updateFinancialPrivacyButton();
