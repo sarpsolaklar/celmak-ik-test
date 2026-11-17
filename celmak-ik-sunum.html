@@ -843,6 +843,9 @@ function monthlyWorkbookPreview(form){
  for(const row of preview)if(row.p&&!row.problem)counts.set(row.p.uid,(counts.get(row.p.uid)||0)+1);
  return preview.map(row=>!row.problem&&counts.get(row.p.uid)>1?{...row,problem:'Aynı çalışan birden fazla satıra eşlendi'}:row);
 }
+function monthlyWorkbookReviewVersion(form,rows=monthlyWorkbookPreview(form)){
+ return JSON.stringify([form.elements.month.value,form.elements.sheet.value,rows.map(row=>[row.number,row.name,row.selectedUid||'',row.problem,row.costs,row.paid,row.total,row.expectedPaid,row.expectedTotal,row.paidDifference,row.totalDifference,row.p?[row.p.uid,row.p.id,row.p.name,row.p.dept,row.p.role,row.p.line,row.p.insuranceCompany,row.p.start,row.p.exit,row.p.status,row.p.pendingPersonnelDetails]:null])]);
+}
 function monthlyWorkbookColumnGuide(source,sheet){
  const header=source?.headers.get(sheet);
  if(!header)return '';
@@ -855,6 +858,7 @@ function monthlyWorkbookColumnGuide(source,sheet){
 }
 function renderMonthlyWorkbookPreview(form){
  const source=monthlyWorkbookImports.get(form),rows=monthlyWorkbookPreview(form),sheet=form.elements.sheet.value;
+ if(source)source.reviewVersion=monthlyWorkbookReviewVersion(form,rows);
  const employers=monthlyWorkbookSheetEmployers[personnelSearchText(sheet)]||[];
  const candidates=db.people.filter(p=>(!p.insuranceCompany||employers.includes(p.insuranceCompany))&&validCostMonth(form.elements.month.value)&&monthlyWorkbookEligible(p,form.elements.month.value))
   .sort((a,b)=>a.name.localeCompare(b.name,'tr'));
@@ -897,6 +901,7 @@ function renderMonthlyWorkbookPreview(form){
  }
  filterMonthlyWorkbookPreview(form);
  form.querySelector('[type="submit"]').disabled=!count;
+ const saveScope=form.querySelector('[data-workbook-save-scope]');if(saveScope)saveScope.textContent='Kaydedilecek ay: '+(validCostMonth(month)?costMonthLabel(month):'Seçilmedi')+' · '+count+' hazır kayıt';
  form.elements.confirm.checked=false;
  const error=form.querySelector('#monthly-workbook-import-error');
  error.textContent=source?.error||'';
@@ -995,7 +1000,7 @@ function openMonthlyWorkbookImport(){
   '<p id="monthly-workbook-preview-count" class="small muted" aria-live="polite"></p>'+
   '<div id="monthly-workbook-import-preview"></div><p class="small muted">Hazır satırlar seçilen aya kaydedilir. Arama ve filtre yalnızca görünümü değiştirir. Tutarlar kuruşa yuvarlanır. Mevcut aylık kayıtlar ve inceleme gereken satırlar aktarılmaz.</p>'+
   '<label class="check"><input name="confirm" type="checkbox" required> Dönemi ve hazır satırların eşleşmelerini kontrol ettim.</label>'+
-  '<p id="monthly-workbook-import-error" class="error" role="alert"></p><div class="dialogactions">'+btn('Vazgeç','monthlyworkbookcancel')+'<button class="btn primary" type="submit" disabled>Hazır satırları aktar</button></div></form>';
+  '<p id="monthly-workbook-import-error" class="error" role="alert"></p><div class="dialogactions" style="flex-wrap:wrap"><p class="small" data-workbook-save-scope aria-live="polite" style="flex-basis:100%;margin:0">Kaydedilecek ay: Seçilmedi</p>'+btn('Vazgeç','monthlyworkbookcancel')+'<button class="btn primary" type="submit" disabled>Hazır satırları aktar</button></div></form>';
  if(!dialog.open)dialog.showModal();
 }
 async function readMonthlyWorkbookImport(form,file){
@@ -1046,7 +1051,9 @@ document.addEventListener('input',event=>{
 function saveMonthlyWorkbookImport(form){
  const error=form.querySelector('#monthly-workbook-import-error');
  try{assertPrimaryStorageCurrent()}catch(problem){error.textContent=problem.message;return}
- const month=form.elements.month.value,rows=monthlyWorkbookPreview(form).filter(row=>!row.problem);
+ const source=monthlyWorkbookImports.get(form),preview=monthlyWorkbookPreview(form);
+ if(!source||source.loading||source.reviewVersion!==monthlyWorkbookReviewVersion(form,preview)){renderMonthlyWorkbookPreview(form);error.textContent='Eşleşme, tutar veya dönem değişti. Güncel önizlemeyi kontrol edip yeniden onaylayın; aktarım yapılmadı.';error.tabIndex=-1;error.focus();error.scrollIntoView?.({block:'nearest'});return}
+ const month=form.elements.month.value,rows=preview.filter(row=>!row.problem);
  if(!form.elements.confirm.checked||!rows.length){error.textContent='Dönemi ve aktarıma hazır eşleşmeleri kontrol edin.';return}
  const at=new Date().toISOString();
  const fileName=String(monthlyWorkbookImports.get(form)?.fileName||'').replace(/\s+/g,' ').trim().slice(0,120);
