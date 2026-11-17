@@ -1396,22 +1396,35 @@ function personEmploymentPreviewText(data){const problem=personEmploymentDatePro
 function updatePersonEmploymentPreview(form){document.getElementById('person-employment-preview').textContent=personEmploymentPreviewText(Object.fromEntries(new FormData(form)))}
 function personEmploymentDateProblem(data,today=TODAY){if(data.status==='Aktif'&&data.exit)return 'Çıkış tarihi girdiyseniz çalışma durumunu İşten ayrıldı seçin; kişi çalışmaya devam ediyorsa çıkış tarihini boş bırakın.';if(!validDate(data.start))return 'İşe giriş tarihi geçerli bir takvim tarihi olmalıdır.';for(const [key,label] of [['contractEnd','Sözleşme bitişi'],['probationEnd','Deneme süresi bitişi']]){if(data[key]&&!validDate(data[key]))return label+' geçerli bir takvim tarihi olmalıdır.';if(data[key]&&data[key]<data.start)return label+' işe giriş tarihinden önce olamaz.'}if(data.status==='İşten ayrıldı'){if(!validDate(data.exit))return 'İşten ayrılan personel için geçerli bir çıkış tarihi girin.';if(data.exit<data.start)return 'Çıkış tarihi işe giriş tarihinden önce olamaz.';if(data.exit>today)return 'Çıkış tarihi bugünden sonra olamaz.'}return ''}
 function personRecordPeriodProblem(p,candidate){const periods=candidate.employmentPeriods||[{start:candidate.start,end:candidate.status==='İşten ayrıldı'?candidate.exit||'':''}];for(const kind of ['leaves','attendance','overtime','assets'])for(const x of db[kind]||[]){if(x.person!==p.id||x.status==='İptal edildi')continue;const start=kind==='leaves'?x.start:x.date,end=kind==='leaves'?x.end:start;if(!start||!validDate(start)||!validDate(end))continue;if(!periods.some(period=>period.start<=start&&(!period.end||end<=period.end)))return fmt(start)+' tarihli '+({leaves:'izin / sağlık raporu',attendance:'puantaj',overtime:'fazla mesai',assets:'zimmet teslimi'})[kind]+' kaydı yeni çalışma döneminin dışında kalıyor. Önce kaynak kaydı kontrol edip gerekçeyle düzeltin veya iptal edin; personel tarihleri değiştirilmedi.'}return ''}
+function clearPersonSectionProblem(form){
+ const error=form?.querySelector('#person-error');if(!error)return;
+ for(const input of form.querySelectorAll('[data-person-section-invalid]')){input.removeAttribute('aria-invalid');delete input.dataset.personSectionInvalid;const ids=(input.getAttribute('aria-describedby')||'').split(/\s+/).filter(id=>id&&id!=='person-error');if(ids.length)input.setAttribute('aria-describedby',ids.join(' '));else input.removeAttribute('aria-describedby')}
+ error.textContent='';delete error.dataset.field;
+}
+function showPersonSectionProblem(form,message,field=''){
+ clearPersonSectionProblem(form);const error=form.querySelector('#person-error');error.textContent=message;error.dataset.field=field;
+ const input=field?form.elements.namedItem(field):null,target=input&&!input.disabled&&!input.closest('[hidden]')?input:error;
+ if(target===error)error.tabIndex=-1;else{input.dataset.personSectionInvalid='true';input.setAttribute('aria-invalid','true');input.setAttribute('aria-describedby',[...new Set(((input.getAttribute('aria-describedby')||'')+' person-error').trim().split(/\s+/))].join(' '));for(let section=input.closest('details');section;section=section.parentElement?.closest('details'))section.open=true}
+ target.focus({preventScroll:true});target.scrollIntoView?.({block:'center',behavior:'smooth'});
+}
+document.addEventListener('input',event=>{const form=event.target.closest?.('#person-edit-form');if(form?.dataset.returnSection&&form.querySelector('#person-error')?.dataset.field===event.target.name)clearPersonSectionProblem(form)});
+document.addEventListener('change',event=>{const form=event.target.closest?.('#person-edit-form');if(form?.dataset.returnSection&&form.querySelector('#person-error')?.dataset.field===event.target.name)clearPersonSectionProblem(form)});
 function savePersonSection(form){
  const p=person(form.dataset.person),config=personEditSectionConfig(form.dataset.returnSection),error=form.querySelector('#person-error');
- const fail=message=>{error.textContent=message;error.tabIndex=-1;error.focus();error.scrollIntoView?.({block:'nearest'})};
+ const fail=(message,field='')=>showPersonSectionProblem(form,message,field);
  if(!p||!config||form.dataset.before&&JSON.stringify(p)!==form.dataset.before){fail('Personel bilgileri form açıkken değişti veya bulunamıyor. Güncel dosyayı yeniden açın; bu giriş kaydedilmedi.');return}
  const raw=Object.fromEntries(new FormData(form)),patch=Object.fromEntries(config.fields.filter(key=>raw[key]!==undefined).map(key=>[key,String(raw[key]).trim()]));
  const problem=personnelExtraProblem({...patch,start:p.start},p.id)||familyInfoProblem(patch);
- if(problem){fail(problem);return}
+ if(problem){const field=config.fields.find(key=>patch[key]!==undefined&&(personnelExtraProblem({[key]:patch[key],start:p.start},p.id)||familyInfoProblem({[key]:patch[key]})));fail(problem,field);return}
  if(form.dataset.returnSection==='employment'){
-  if(!['Tam zamanlı','Yarı zamanlı','Stajyer','Diğer'].includes(patch.employmentType)){fail('Geçerli çalışma biçimi seçin.');return}
-  for(const key of ['contractEnd','probationEnd'])if(patch[key]&&(!validDate(patch[key])||validDate(p.start)&&patch[key]<p.start)){fail('Sözleşme ve deneme bitişi geçerli olmalı; işe girişten önce olamaz.');return}
+  if(!['Tam zamanlı','Yarı zamanlı','Stajyer','Diğer'].includes(patch.employmentType)){fail('Geçerli çalışma biçimi seçin.','employmentType');return}
+  for(const key of ['contractEnd','probationEnd'])if(patch[key]&&(!validDate(patch[key])||validDate(p.start)&&patch[key]<p.start)){fail('Sözleşme ve deneme bitişi geçerli olmalı; işe girişten önce olamaz.',key);return}
  }
- if(patch.homeLine!==undefined){if(!usesProductionLines(p)){delete patch.homeLine}else if(patch.homeLine&&!db.settings.lines.includes(patch.homeLine)){fail('Tanımlı bir ana hat seçin veya boş bırakın.');return}}
+ if(patch.homeLine!==undefined){if(!usesProductionLines(p)){delete patch.homeLine}else if(patch.homeLine&&!db.settings.lines.includes(patch.homeLine)){fail('Tanımlı bir ana hat seçin veya boş bırakın.','homeLine');return}}
  if(patch.childrenCount!==undefined)patch.childrenCount=patch.childrenCount===''?null:Number(patch.childrenCount);
  for(const [key,value] of Object.entries(patch))if(String(value??'')===String(p[key]??''))delete patch[key];
  if(!Object.keys(patch).length){fail('Bu bölümde değişiklik yok. Bilgiyi değiştirin veya geri dönün.');return}
- const reason=String(raw.reason||'').trim();if(!reason||reason.length>200){fail('Düzeltme nedenini 1–200 karakterle açıklayın.');return}
+ const reason=String(raw.reason||'').trim();if(!reason||reason.length>200){fail('Düzeltme nedenini 1–200 karakterle açıklayın.','reason');return}
  Object.assign(p,patch);dialog.close();save(p.name+' · '+config.title+' · Gerekçe: '+reason);
  if(form.dataset.returnNotification&&returnNotificationEditContext(form))return;
  if(form.dataset.returnProfile==='true'){profile(p.id);jumpProfileSection(form.dataset.returnSection)}
